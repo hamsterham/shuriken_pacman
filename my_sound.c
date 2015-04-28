@@ -6,9 +6,10 @@
 // Jonathan Valvano
 // November 19, 2012
 
-#include "DAC.h"
-#include "Timer0.h"
-#include "Sound.h"
+//#include "DAC.h"
+//#include "Timer0.h"
+#include "tm4c123gh6pm.h"
+#include "my_sound.h"
 
 const unsigned char shoot[4080] = {
   129, 99, 103, 164, 214, 129, 31, 105, 204, 118, 55, 92, 140, 225, 152, 61, 84, 154, 184, 101, 
@@ -1141,13 +1142,13 @@ const unsigned char highpitch[1802] = {
 
 unsigned long Index = 0;
 const unsigned char *Wave;
-unsigned long Count = 0;
+unsigned long Cntr = 0;
 
 void Play(void){
-  if(Count){
+  if(Cntr){
     DAC_Out(Wave[Index]>>4);
     Index = Index + 1;
-    Count = Count - 1;
+    Cntr = Cntr - 1;
   }else{
     NVIC_ST_CTRL_R = 0;         // disable SysTick 
   }
@@ -1167,7 +1168,7 @@ void DAC_Out(unsigned long data){
 // Output: none
 void SysTick_Init(void){    
   NVIC_ST_CTRL_R = 0;         // disable SysTick during setup
-  NVIC_ST_RELOAD_R = 80000000/11025);// reload value
+  NVIC_ST_RELOAD_R = 80000000/11025;   // reload value
   NVIC_ST_CURRENT_R = 0;      // any write to current clears it
   NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R&0x00FFFFFF)|0x20000000; // priority 1      
 }
@@ -1179,7 +1180,7 @@ void SysTick_Handler(void){
 void Sound_Play(const unsigned char *pt, unsigned long count){
   Wave = pt;
   Index = 0;
-  Count = count;
+  Cntr = count;
   NVIC_ST_CTRL_R = 0x0007;  // enable SysTick with core clock and interrupts  
 }
 void Sound_Shoot(void){

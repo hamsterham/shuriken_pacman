@@ -502,14 +502,15 @@ int main(void){
   current_game_level = 0;
   num_lives_left = MAXLIVES;      // 3 lives
   
-  Delay100ms(10);              // delay 1 sec at 80 MHz
+  Delay100ms(3);              // delay 0.3 sec at 80 MHz
   
   while(current_game_state == PLAYING_GAME){
       // initialize objects 
       // e.g. ghosts , power-up , pacman etc
       // using game_level objects
       init_game_level_objects();    // called every time for a new level
-      Timer2_Init(80000000/30);  // 30 Hz, for moving, and setting Semaphore  
+      Timer2_Init(80000000/30);     // 30 Hz, for moving, and setting Semaphore  
+      SysTick_Init();                  // 11 kHz
 //      Draw();                   // an initial Draw first
       // level starts
       while(1){
@@ -623,15 +624,16 @@ void display_game_info(void){
   Nokia5110_SetCursor(0, 0);
   Nokia5110_OutString("Info: ");
   Nokia5110_SetCursor(0, 1);
-  Nokia5110_OutString("Lvls : 5");
+  Nokia5110_OutString("Levels : 5");
   Nokia5110_SetCursor(0, 2);
   Nokia5110_OutString("Lives : 3");
   Nokia5110_SetCursor(0, 4);
   Nokia5110_OutString("Next (A)");
-  while(GPIO_PORTE_DATA_R == 0x00){   // wait for user to press button and go to next page
+  while((GPIO_PORTE_DATA_R&0x03) == 0){   // wait for user to press any button and go to next page
   }
   // page 2
-    Nokia5110_Clear();
+  Delay1ms(300);         // delay 30ms for button bounce
+  Nokia5110_Clear();
   Nokia5110_SetCursor(0, 0);
   Nokia5110_OutString(" (contd):");
   Nokia5110_SetCursor(0, 1);
@@ -640,9 +642,10 @@ void display_game_info(void){
   Nokia5110_OutString("(B) shoot.");
   Nokia5110_SetCursor(0, 4);
   Nokia5110_OutString("Get power-up to shoot.");
-  while(GPIO_PORTE_DATA_R == 0x00){   // wait for user to press button and go to game
+  while((GPIO_PORTE_DATA_R&0x03) == 0){   // wait for user to press any button and go to game
   }
-  }
+  Nokia5110_OutString("****");
+}
 
 void PortB_Init(void){
   unsigned long volatile delay;
