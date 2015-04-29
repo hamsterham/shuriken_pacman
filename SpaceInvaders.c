@@ -66,6 +66,8 @@ void display_game_info(void);
 void PortB_Init(void);
 void PortE_Init(void);
 void Draw(void);
+void Move(void);
+unsigned long ADC0_In(void);
 unsigned long TimerCount;
 unsigned long Semaphore;      // a flag for drawing
 
@@ -301,6 +303,7 @@ const unsigned char img_powerup[] ={
 #define PACMANSPEED       2       // PACMAN SPEED
 #define GHOSTW            12      // GHOST dimensions
 #define GHOSTH            12
+#define GHOSTSPEED        2
 #define POWERUP           12      // POWER-UP SQUARE dimensions+
 #define READY_GAME        0       // game in initial stage
 #define PLAYING_GAME      1       // game is in play
@@ -308,10 +311,11 @@ const unsigned char img_powerup[] ={
 #define GAME_OVER         4         // game is lost, lose 3 lives
 #define ORIENTATIONH      0       // orientation of pacman is horizontal
 #define ORIENTATIONV      1       // orientation of pacman is vertical
-#define DIRECTIONR        0       // the direction of pacman, for loading the correct image
-#define DIRECTIONL        1
-#define DIRECTIONU        2
-#define DIRECTIOND        3
+#define DIRECTIONL        0       // the direction pacman is heading
+#define DIRECTIONR        1
+#define DIRECTIOND        2
+#define DIRECTIONU        3
+#define DIRECTIONSTOP     4
 #define ALIVE             0       // for knowing when/what to animate
 #define DYING             1
 #define DEAD              2
@@ -323,6 +327,7 @@ const unsigned char img_powerup[] ={
 char current_game_level, num_lives_left ;
 unsigned long FrameCount = 0;
 unsigned char current_game_state = READY_GAME;
+unsigned long ADCdata;    // 12-bit data from slide pot, range 0 to 4095
 
 struct Game_Level {
   unsigned char level;              // game level
@@ -337,12 +342,14 @@ struct pacmam_struct {
   unsigned char power_up;
   const unsigned char *image[4][2];  // 4 directions, each two pointers to images
   unsigned char pacman_state;
+  int speed;
 };
 
 struct enemyghost_struct {
   int xpos, ypos;   
   const unsigned char *image[2];  // two pointers to images
   unsigned char ghost_state;  
+  int speed;
 };
 
 struct powerup_struct {
@@ -409,15 +416,16 @@ void init_pac(void){
   pac.power_up = 0;
   pac.xpos = 0;
   pac.ypos = 47;  
-  pac.image[0][0] = img_pacmanrightA;
-  pac.image[0][1] = img_pacmanrightB ;
-  pac.image[1][0] = img_pacmanleftA;
-  pac.image[1][1] = img_pacmanleftB ;
-  pac.image[2][0] = img_pacmanupA;
-  pac.image[2][1] = img_pacmanupB;
-  pac.image[3][0] = img_pacmandownA; 
-  pac.image[3][1] = img_pacmandownB;
+  pac.image[0][0] = img_pacmanleftA;
+  pac.image[0][1] = img_pacmanleftB ;
+  pac.image[1][0] = img_pacmanrightA;
+  pac.image[1][1] = img_pacmanrightB ;
+  pac.image[2][0] = img_pacmandownA; 
+  pac.image[2][1] = img_pacmandownB;  
+  pac.image[3][0] = img_pacmanupA;
+  pac.image[3][1] = img_pacmanupB;
   pac.pacman_state = ALIVE ;
+  pac.speed = PACMANSPEED;
 }
 
 void init_enemies(int num_ghost){
@@ -429,6 +437,7 @@ void init_enemies(int num_ghost){
     enemyGhost[i].ypos = Random()%(47 - GHOSTH) + GHOSTH;
     enemyGhost[i].image[0] = img_enemyghostA;
     enemyGhost[i].image[1] = img_enemyghostB;
+    enemyGhost[i].speed = GHOSTSPEED;
   }
 }
 
@@ -549,7 +558,24 @@ void Draw(void){ int i;
       while(1){
         while(Semaphore==0){}
           Semaphore = 0;          // reset flag
-//          Move();
+          // read slide pot
+          ADCdata = ADC0_In();
+          // decide pacman's direction
+          // slide pot 4095 / 3 ==> 1365
+          if(ADCdata < 1365)
+            if(pac.orientation == ORIENTATIONH)
+              pac.direction = DIRECTIONL;
+            else
+              pac.direction = DIRECTIOND;
+          else if(ADCdata > 2730)
+            if(pac.orientation == ORIENTATIONH)
+              pac.direction = DIRECTIONR;
+            else
+              pac.direction = DIRECTIONU;
+          else
+            pac.direction = DIRECTIONSTOP;
+          // move the necessary objects
+          move();
           Draw();
           Delay1ms(30);
         }
@@ -742,3 +768,21 @@ void Draw(void){
   FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
 }
 
+//------------ADC0_In------------
+// Busy-wait Analog to digital conversion
+// Input: none
+// Output: 12-bit result of ADC conversion
+unsigned long ADC0_In(void){  
+  unsigned long result;
+  ADC0_PSSI_R = 0x0008;            // 1) initiate SS3
+  while((ADC0_RIS_R&0x08)==0){};   // 2) wait for conversion done
+  result = ADC0_SSFIFO3_R&0xFFF;   // 3) read result (12-bit)
+  ADC0_ISC_R = 0x0008;             // 4) acknowledge completion
+  return result;
+}
+
+void Move(void){
+  // move pacman
+  // move missile
+  // move ghost
+}
