@@ -1150,6 +1150,7 @@ void Play(void){
     Index = Index + 1;
     Cntr = Cntr - 1;
   }else{
+    DAC_Out(0);                 // play no sound
     NVIC_ST_CTRL_R = 0;         // disable SysTick 
   }
 }

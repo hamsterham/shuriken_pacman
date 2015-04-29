@@ -51,7 +51,7 @@
 // LED on PB4
 // LED on PB5
 
-#include "..//tm4c123gh6pm.h"
+#include "tm4c123gh6pm.h"
 #include "Nokia5110.h"
 #include "Random.h"
 #include "TExaS.h"
@@ -65,6 +65,7 @@ void Delay1ms(unsigned long msec);    // time delay in 0.001 seconds
 void display_game_info(void);
 void PortB_Init(void);
 void PortE_Init(void);
+void Draw(void);
 unsigned long TimerCount;
 unsigned long Semaphore;      // a flag for drawing
 
@@ -332,6 +333,7 @@ struct Game_Level {
 struct pacmam_struct {
   int xpos, ypos;
   unsigned char orientation;  // going horizontal or vertical
+  unsigned char direction;  // direction pacman is facing
   unsigned char power_up;
   const unsigned char *image[4][2];  // 4 directions, each two pointers to images
   unsigned char pacman_state;
@@ -339,13 +341,22 @@ struct pacmam_struct {
 
 struct enemyghost_struct {
   int xpos, ypos;   
-  const unsigned char *image[2];  // 4 directions, each two pointers to images
+  const unsigned char *image[2];  // two pointers to images
   unsigned char ghost_state;  
 };
 
 struct powerup_struct {
   int xpos, ypos;
   const unsigned char *image;
+  unsigned char powerup_state;
+};
+
+struct missile_struct {
+  int xpos, ypos;
+  const unsigned char *image[2][2];
+  unsigned char missile_state;
+  unsigned char orientation;  // going horizontal or vertical
+  unsigned char direction;  // direction pacman is facing
 };
 
 /*
@@ -360,20 +371,22 @@ typedef struct Game_Level     Level;
 typedef struct pacmam_struct  Pacman;
 typedef struct enemyghost_struct EnemyGhost;
 typedef struct powerup_struct PowerUp;
+typedef struct missile_struct Missile;
 //typedef struct Floor_plan     floor_plan;
 
 Level game_level[MAXLEVEL];
 Pacman pac;
 EnemyGhost enemyGhost[MAX_NUM_ENEMIES];
 PowerUp powerups[MAX_NUM_POWERUPS] ;
+Missile missiles[MAX_NUM_POWERUPS];
 //floor_plan floor_info[MAXLEVEL];
 
 void init_game_levels(void){
   int i ;  
   for(i=0; i< MAXLEVEL;i++){
     game_level[i].level = i;
-    game_level[i].num_ghost = i + 1;
-    game_level[i].num_power_up = i;
+    game_level[i].num_ghost = i + 2;
+    game_level[i].num_power_up = i+1;
     if(game_level[i].num_ghost > MAX_NUM_ENEMIES)
       game_level[i].num_ghost = MAX_NUM_ENEMIES;
     if(game_level[i].num_power_up > MAX_NUM_POWERUPS)
@@ -392,6 +405,7 @@ void init_game_levels(void){
 
 void init_pac(void){
   pac.orientation = ORIENTATIONH;
+  pac.direction = DIRECTIONR;
   pac.power_up = 0;
   pac.xpos = 0;
   pac.ypos = 47;  
@@ -407,12 +421,12 @@ void init_pac(void){
 }
 
 void init_enemies(int num_ghost){
-  int i;
+  int i;  
   for(i=0;i<num_ghost;i++){
     enemyGhost[i].ghost_state = ALIVE;
-    // ensure there's a distance from pacman and doesn't go out of screen
-    enemyGhost[i].xpos = Random()%60 + 23 - GHOSTW;    
-    enemyGhost[i].ypos = Random()%47;
+    // ensure there's a distance from pacman and doesn't go off screen    
+    enemyGhost[i].xpos = Random()%(83 - 2*GHOSTW) + GHOSTW;    
+    enemyGhost[i].ypos = Random()%(47 - GHOSTH) + GHOSTH;
     enemyGhost[i].image[0] = img_enemyghostA;
     enemyGhost[i].image[1] = img_enemyghostB;
   }
@@ -421,9 +435,25 @@ void init_enemies(int num_ghost){
 void init_power_ups(int num_power_up){
   int i;
   for(i=0;i<num_power_up;i++){
-    powerups[i].xpos = Random()%60 + 23 - POWERUP;
-    powerups[i].ypos = Random()%47 ;
+    powerups[i].xpos = Random()%(83 - 2*POWERUP) + POWERUP;    
+    powerups[i].ypos = Random()%(47 - POWERUP) + POWERUP;
     powerups[i].image = img_powerup;
+    powerups[i].powerup_state = ALIVE;
+  }
+}
+
+void init_missiles(int num_power_up){
+ int i;
+  for(i=0;i<num_power_up;i++){
+    missiles[i].xpos = i*20;
+    missiles[i].ypos = 20 ;    
+    missiles[i].image[ORIENTATIONH][0] = img_MissileH0;
+    missiles[i].image[ORIENTATIONH][1] = img_MissileH1;
+    missiles[i].image[ORIENTATIONV][0] = img_MissileV0;
+    missiles[i].image[ORIENTATIONV][1] = img_MissileV1;
+    missiles[i].missile_state = DEAD;    // set default inactive
+    missiles[i].orientation = ORIENTATIONV;
+    missiles[i].direction = DIRECTIOND;
   }
 }
 
@@ -431,6 +461,7 @@ void init_game_level_objects(){
   init_pac();
   init_enemies(game_level[current_game_level].num_ghost);
   init_power_ups(game_level[current_game_level].num_power_up);
+  init_missiles(game_level[current_game_level].num_power_up);
 }
 
 /*
@@ -479,11 +510,11 @@ void Draw(void){ int i;
   FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
 }
 */
-int main(void){ 
+  int main(void){ 
    int AnyLife = 1; int i;
   TExaS_Init(NoLCD_NoScope);  // set system clock to 80 MHz
   // you cannot use both the Scope and the virtual Nokia (both need UART0)
-  Random_Init(1);
+  Random_Init(1234);
   Nokia5110_Init();
   
   PortB_Init();
@@ -495,33 +526,35 @@ int main(void){
   Nokia5110_ClearBuffer();
 	Nokia5110_DisplayBuffer();      // draw buffer
 
-  // starting == display game info
-  display_game_info();
+  // starting ==> display game info
+//  display_game_info();           // to uncomment
+
+  // set global parameter
+  current_game_level = MAXLEVEL-1;      // 0 to 4
+  current_game_state = PLAYING_GAME;    // game starts  
+  num_lives_left = MAXLIVES;           // 3 lives
   
-  current_game_state = PLAYING_GAME;    // game starts
-  current_game_level = 0;
-  num_lives_left = MAXLIVES;      // 3 lives
-  
-  Delay100ms(3);              // delay 0.3 sec at 80 MHz
+//  Delay1ms(30);              // delay 0.03 sec at 80 MHz
   
   while(current_game_state == PLAYING_GAME){
-      // initialize objects 
-      // e.g. ghosts , power-up , pacman etc
-      // using game_level objects
-      init_game_level_objects();    // called every time for a new level
-      Timer2_Init(80000000/30);     // 30 Hz, for moving, and setting Semaphore  
-      SysTick_Init();                  // 11 kHz
-//      Draw();                   // an initial Draw first
+
+    // initialize objects for game levels
+    // e.g. ghosts , power-up , pacman etc
+    // using game_level objects
+    init_game_level_objects();  
+    Timer2_Init(80000000/30);     // 30 Hz, for moving, and setting Semaphore  
+    SysTick_Init();                  // 11 kHz    
+    Draw();                   // an initial Draw first
       // level starts
       while(1){
         while(Semaphore==0){}
           Semaphore = 0;          // reset flag
 //          Move();
-//          Draw();
-          Delay100ms(1);
+          Draw();
+          Delay1ms(30);
         }
           
-        
+      current_game_level++;
       }
 
 }
@@ -595,7 +628,8 @@ void Timer2A_Handler(void){
   // move
   // play sound, invoke systick
 }
-void Delay100ms(unsigned long count){unsigned long volatile time;
+void Delay100ms(unsigned long count){
+  unsigned long volatile time;
   while(count>0){
     time = 727240;  // 0.1sec at 80 MHz
     while(time){
@@ -644,7 +678,8 @@ void display_game_info(void){
   Nokia5110_OutString("Get power-up to shoot.");
   while((GPIO_PORTE_DATA_R&0x03) == 0){   // wait for user to press any button and go to game
   }
-  Nokia5110_OutString("****");
+  Nokia5110_OutString("****");      // to be removed
+  Delay1ms(300);         // delay 30ms for button bounce
 }
 
 void PortB_Init(void){
@@ -681,3 +716,29 @@ void PortE_Init(void){
 
 }
   
+
+void Draw(void){ 
+  int i;
+  Nokia5110_ClearBuffer();
+  // draw pacman
+  if(pac.pacman_state==ALIVE)
+    Nokia5110_PrintBMP(pac.xpos, pac.ypos, pac.image[pac.direction][FrameCount], 0);
+  // draw ghost
+  for(i=0; i<game_level[current_game_level].num_ghost; i++){
+    if(enemyGhost[i].ghost_state == ALIVE)
+      Nokia5110_PrintBMP(enemyGhost[i].xpos, enemyGhost[i].ypos, enemyGhost[i].image[FrameCount], 0);    
+  }
+  // draw power up
+  for(i=0; i<game_level[current_game_level].num_power_up; i++){
+    if(powerups[i].powerup_state == ALIVE)
+      Nokia5110_PrintBMP(powerups[i].xpos, powerups[i].ypos, powerups[i].image, 0);    
+  }  
+  // draw missile
+  for(i=0; i<MAX_NUM_POWERUPS; i++){
+    if(missiles[i].missile_state == ALIVE)
+      Nokia5110_PrintBMP(missiles[i].xpos, missiles[i].ypos, missiles[i].image[missiles[i].orientation][FrameCount], 0);    
+  }
+  Nokia5110_DisplayBuffer();      // draw buffer
+  FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
+}
+
