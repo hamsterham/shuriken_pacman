@@ -67,7 +67,10 @@ void PortB_Init(void);
 void PortE_Init(void);
 void Draw(void);
 void Move(void);
+void MovePac(void);
+void MoveGhosts(void);
 unsigned long ADC0_In(void);
+void OutofScreenChecks(void);
 unsigned long TimerCount;
 unsigned long Semaphore;      // a flag for drawing
 
@@ -293,35 +296,44 @@ const unsigned char img_powerup[] ={
 
 // *************************** Capture image dimensions out of BMP**********
 
-#define MAXLEVEL          5
-#define MISSILEHW         10      // missile horizontal dimensions
-#define MISSILEHH         4
-#define MISSILEVW         4       // missile vertical dimensions
-#define MISSILEVH         10
-#define PACMANW           12      // PACMAN dimensions
-#define PACMANH           12
-#define PACMANSPEED       2       // PACMAN SPEED
-#define GHOSTW            12      // GHOST dimensions
-#define GHOSTH            12
-#define GHOSTSPEED        2
-#define POWERUP           12      // POWER-UP SQUARE dimensions+
-#define READY_GAME        0       // game in initial stage
-#define PLAYING_GAME      1       // game is in play
-#define WIN_GAME          2       // game is won
-#define GAME_OVER         4         // game is lost, lose 3 lives
-#define ORIENTATIONH      0       // orientation of pacman is horizontal
-#define ORIENTATIONV      1       // orientation of pacman is vertical
-#define DIRECTIONL        0       // the direction pacman is heading
-#define DIRECTIONR        1
-#define DIRECTIOND        2
-#define DIRECTIONU        3
-#define DIRECTIONSTOP     4
-#define ALIVE             0       // for knowing when/what to animate
-#define DYING             1
-#define DEAD              2
-#define MAXLIVES          3       // maximum number of live to begin with
-#define MAX_NUM_ENEMIES   6       // maximum number of enemies
-#define MAX_NUM_POWERUPS  3       // maximum number of power-ups
+#define SCREENW               84      // screen dimensions
+#define SCREENH               48
+#define MAXLEVEL              5
+#define MISSILEHW             10      // missile horizontal dimensions
+#define MISSILEHH             4
+#define MISSILEVW             4       // missile vertical dimensions
+#define MISSILEVH             10
+#define PACMANW               12      // PACMAN dimensions
+#define PACMANH               12
+#define GHOSTW                12      // GHOST dimensions
+#define GHOSTH                12
+#define POWERUP               12      // POWER-UP SQUARE dimensions+
+
+#define READY_GAME            0       // game in initial stage
+#define PLAYING_GAME          1       // game is in play
+#define WIN_GAME              2       // game is won
+#define GAME_OVER             4       // game is lost, lose 3 lives
+
+#define ORIENTATIONH          0       // orientation of pacman is horizontal
+#define ORIENTATIONV          1       // orientation of pacman is vertical
+#define DIRECTIONL            0       // the direction pacman is heading, 
+#define DIRECTIONR            1       // and for whether to plus or minus speed from object xpos_ypos
+#define DIRECTIOND            2
+#define DIRECTIONU            3
+#define DIRECTIONSTOP         4
+#define SPD_LEFT_UP_NORM      -2       // normal SPEED for different directions
+#define SPD_RIGHT_DOWN_NORM   2       
+#define SPD_STOP              0       
+#define SPD_LEFT_UP_SLOW      -1       // slow SPEED for different directions
+#define SPD_RIGHT_DOWN_SLOW   1       
+
+#define ALIVE                 0       // for knowing when/what to animate
+#define DYING                 1
+#define DEAD                  2
+
+#define MAXLIVES              3       // maximum number of live to begin with
+#define MAX_NUM_ENEMIES       6       // maximum number of enemies
+#define MAX_NUM_POWERUPS      3       // maximum number of power-ups
 
 // Global Variable
 char current_game_level, num_lives_left ;
@@ -350,6 +362,7 @@ struct enemyghost_struct {
   const unsigned char *image[2];  // two pointers to images
   unsigned char ghost_state;  
   int speed;
+  unsigned char direction;  
 };
 
 struct powerup_struct {
@@ -411,21 +424,21 @@ void init_game_levels(void){
 }*/
 
 void init_pac(void){
-  pac.orientation = ORIENTATIONH;
+  pac.orientation = ORIENTATIONH;      // degault to horizontal, facing right
   pac.direction = DIRECTIONR;
   pac.power_up = 0;
   pac.xpos = 0;
   pac.ypos = 47;  
-  pac.image[0][0] = img_pacmanleftA;
-  pac.image[0][1] = img_pacmanleftB ;
-  pac.image[1][0] = img_pacmanrightA;
-  pac.image[1][1] = img_pacmanrightB ;
-  pac.image[2][0] = img_pacmandownA; 
-  pac.image[2][1] = img_pacmandownB;  
-  pac.image[3][0] = img_pacmanupA;
-  pac.image[3][1] = img_pacmanupB;
+  pac.image[DIRECTIONL][0] = img_pacmanleftA;
+  pac.image[DIRECTIONL][1] = img_pacmanleftB ;
+  pac.image[DIRECTIONR][0] = img_pacmanrightA;
+  pac.image[DIRECTIONR][1] = img_pacmanrightB ;
+  pac.image[DIRECTIOND][0] = img_pacmandownA; 
+  pac.image[DIRECTIOND][1] = img_pacmandownB;  
+  pac.image[DIRECTIONU][0] = img_pacmanupA;
+  pac.image[DIRECTIONU][1] = img_pacmanupB;
   pac.pacman_state = ALIVE ;
-  pac.speed = PACMANSPEED;
+  pac.speed = SPD_STOP;
 }
 
 void init_enemies(int num_ghost){
@@ -437,7 +450,8 @@ void init_enemies(int num_ghost){
     enemyGhost[i].ypos = Random()%(47 - GHOSTH) + GHOSTH;
     enemyGhost[i].image[0] = img_enemyghostA;
     enemyGhost[i].image[1] = img_enemyghostB;
-    enemyGhost[i].speed = GHOSTSPEED;
+    //enemyGhost[i].direction = 
+    enemyGhost[i].speed = SPD_STOP;
   }
 }
 
@@ -454,13 +468,13 @@ void init_power_ups(int num_power_up){
 void init_missiles(int num_power_up){
  int i;
   for(i=0;i<num_power_up;i++){
-    missiles[i].xpos = i*20;
-    missiles[i].ypos = 20 ;    
+    missiles[i].xpos = 0;
+    missiles[i].ypos = 0 ;    
     missiles[i].image[ORIENTATIONH][0] = img_MissileH0;
     missiles[i].image[ORIENTATIONH][1] = img_MissileH1;
     missiles[i].image[ORIENTATIONV][0] = img_MissileV0;
     missiles[i].image[ORIENTATIONV][1] = img_MissileV1;
-    missiles[i].missile_state = DEAD;    // set default inactive
+    missiles[i].missile_state = DEAD;        // set default inactive
     missiles[i].orientation = ORIENTATIONV;
     missiles[i].direction = DIRECTIOND;
   }
@@ -561,22 +575,29 @@ void Draw(void){ int i;
           // read slide pot
           ADCdata = ADC0_In();
           // decide pacman's direction
-          // slide pot 4095 / 3 ==> 1365
-          if(ADCdata < 1365)
-            if(pac.orientation == ORIENTATIONH)
+          // divide slide pot value (0 to 4095) into 3 sections 
+          if(ADCdata < 1365){
+            if(pac.orientation == ORIENTATIONH){
               pac.direction = DIRECTIONL;
-            else
+              pac.speed = DIRECTIONL;
+            } else {
               pac.direction = DIRECTIOND;
-          else if(ADCdata > 2730)
-            if(pac.orientation == ORIENTATIONH)
+              pac.speed = DIRECTIOND;
+            }
+          } else if(ADCdata > 2730) {
+            if(pac.orientation == ORIENTATIONH){
               pac.direction = DIRECTIONR;
-            else
+              pac.speed = DIRECTIONR;
+            } else {
               pac.direction = DIRECTIONU;
-          else
-            pac.direction = DIRECTIONSTOP;
+              pac.speed = DIRECTIONU;
+            }
+          } else
+            pac.speed = DIRECTIONSTOP;
           // move the necessary objects
-          move();
+          Move();
           Draw();
+          // do collision detection 
           Delay1ms(30);
         }
           
@@ -783,6 +804,44 @@ unsigned long ADC0_In(void){
 
 void Move(void){
   // move pacman
-  // move missile
+  MovePac();
   // move ghost
+  // MoveGhosts();
+  // move missile    
+}
+
+void MovePac(void){
+  // move pacman
+  switch(pac.speed){
+    case DIRECTIONL:
+      pac.xpos += SPD_LEFT_UP_NORM;
+      if(pac.xpos < 0)
+        pac.xpos = 0;
+      break;
+    case DIRECTIONR:
+      pac.xpos += SPD_RIGHT_DOWN_NORM;
+      if(pac.xpos > SCREENW - PACMANW)
+        pac.xpos = SCREENW - PACMANW;
+      break;
+    case DIRECTIOND:     
+      pac.ypos += SPD_RIGHT_DOWN_NORM;
+      if(pac.ypos > SCREENH)
+        pac.ypos = SCREENH;
+      break;
+    case DIRECTIONU:
+      pac.ypos += SPD_LEFT_UP_NORM;
+      if(pac.ypos < PACMANH)
+        pac.ypos = PACMANH;
+      break;
+    case DIRECTIONSTOP:
+      break;
+  }   
+}
+
+void MoveGhosts(void){
+  int i=0;
+  for(i=0; i<game_level[current_game_level].num_ghost; i++){
+    if(enemyGhost[i].ghost_state == ALIVE)
+      ;
+  }
 }
