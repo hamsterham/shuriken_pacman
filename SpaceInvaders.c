@@ -55,6 +55,7 @@
 #include "Nokia5110.h"
 #include "Random.h"
 #include "TExaS.h"
+#include "Math.h"
 #include "my_sound.h"
 
 void DisableInterrupts(void); // Disable interrupts
@@ -69,6 +70,8 @@ void Draw(void);
 void Move(void);
 void MovePac(void);
 void MoveGhosts(void);
+void CollisionDectection(void);
+void Buttons_In(void);
 unsigned long ADC0_In(void);
 void OutofScreenChecks(void);
 unsigned long TimerCount;
@@ -398,6 +401,10 @@ const unsigned char img_splash_screen[] ={
 #define DIRECTIOND            2
 #define DIRECTIONU            3
 #define DIRECTIONSTOP         4
+
+#define SLIDE_POT_LEFT        -2      // position of meter from slide pot
+#define SLIDE_POT_RIGHT       2
+#define SLIDE_POT_CENTER      0
 #define SPD_LEFT_UP_NORM      -2       // normal SPEED for different directions
 #define SPD_RIGHT_DOWN_NORM   2       
 #define SPD_STOP              0       
@@ -413,11 +420,18 @@ const unsigned char img_splash_screen[] ={
 #define MAX_NUM_ENEMIES       6       // maximum number of enemies
 #define MAX_NUM_POWERUPS      3       // maximum number of power-ups
 
+// PE 0 - Rotate button
+#define ROTATE 					(*((volatile unsigned long *)0x40024004))
+// PE 1 - shoot button
+#define SHOOT 					(*((volatile unsigned long *)0x40024008))
+  
+
 // Global Variable
 char current_game_level, num_lives_left , current_num_power_ups ;
 unsigned long FrameCount = 0;
 unsigned char current_game_state = READY_GAME;
 unsigned long ADCdata;    // 12-bit data from slide pot, range 0 to 4095
+int go_to_next_level = 0;
 
 struct Game_Level { 
   unsigned char level;              // game level
@@ -427,6 +441,7 @@ struct Game_Level {
 
 struct pacmam_struct {
   int xpos, ypos;
+  //int center_x, center_y;
   unsigned char orientation;  // going horizontal or vertical
   unsigned char direction;  // direction pacman is facing
   unsigned char power_up;
@@ -437,6 +452,7 @@ struct pacmam_struct {
 
 struct enemyghost_struct {
   int xpos, ypos;   
+  // int center_x, center_y;
   const unsigned char *image[2];  // two pointers to images
   unsigned char ghost_state;  
   int speed;
@@ -474,7 +490,7 @@ typedef struct missile_struct Missile;
 
 Level game_level[MAXLEVELS];
 Pacman pac;
-EnemyGhost enemyGhost[MAX_NUM_ENEMIES];
+EnemyGhost enemyGhosts[MAX_NUM_ENEMIES];
 PowerUp powerups[MAX_NUM_POWERUPS] ;
 Missile missiles[MAX_NUM_POWERUPS];
 //floor_plan floor_info[MAXLEVEL];
@@ -505,8 +521,10 @@ void init_pac(void){
   pac.orientation = ORIENTATIONH;      // degault to horizontal, facing right
   pac.direction = DIRECTIONR;
   pac.power_up = 0;
-  pac.xpos = 0;
-  pac.ypos = 47;  
+  // pac.xpos = 0;
+  // pac.ypos = 47;  
+  pac.xpos = 0;           // initial position
+  pac.ypos = SCREENH;
   pac.image[DIRECTIONL][0] = img_pacmanleftA;
   pac.image[DIRECTIONL][1] = img_pacmanleftB ;
   pac.image[DIRECTIONR][0] = img_pacmanrightA;
@@ -522,14 +540,14 @@ void init_pac(void){
 void init_enemies(int num_ghost){
   int i;  
   for(i=0;i<num_ghost;i++){
-    enemyGhost[i].ghost_state = ALIVE;
+    enemyGhosts[i].ghost_state = ALIVE;
     // ensure there's a distance from pacman and doesn't go off screen    
-    enemyGhost[i].xpos = Random()%(83 - 2*GHOSTW) + GHOSTW;    
-    enemyGhost[i].ypos = Random()%(47 - GHOSTH) + GHOSTH;
-    enemyGhost[i].image[0] = img_enemyghostA;
-    enemyGhost[i].image[1] = img_enemyghostB;
+    enemyGhosts[i].xpos = Random()%(83 - 2*GHOSTW) + GHOSTW;    
+    enemyGhosts[i].ypos = Random()%(47 - GHOSTH) + GHOSTH;
+    enemyGhosts[i].image[0] = img_enemyghostA;
+    enemyGhosts[i].image[1] = img_enemyghostB;
     //enemyGhost[i].direction = 
-    enemyGhost[i].speed = SPD_STOP;
+    enemyGhosts[i].speed = SPD_STOP;
   }
 }
 
@@ -611,8 +629,8 @@ void Draw(void){ int i;
   FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
 }
 */
-    int main(void){ 
-   int AnyLife = 1; int i;
+int main(void){      
+  int AnyLife = 1; int i;
   TExaS_Init(NoLCD_NoScope);  // set system clock to 80 MHz
   // you cannot use both the Scope and the virtual Nokia (both need UART0)
   Random_Init(1234);
@@ -624,17 +642,18 @@ void Draw(void){ int i;
   
   EnableInterrupts(); // virtual Nokia uses UART0 interrupts
   
-  Nokia5110_ClearBuffer();
-	Nokia5110_DisplayBuffer();      // draw buffer
-
   // starting ==> display Splash screen and game info
 //  Splash_Screen();           // to uncomment
+
+  //Nokia5110_ClearBuffer();
+	//Nokia5110_DisplayBuffer();      // draw buffer
 
   // set global parameter
   current_game_level = MAXLEVELS-1;      // 0 to 4
   current_game_state = PLAYING_GAME;    // game starts  
   num_lives_left = MAXLIVES;           // 3 lives
   current_num_power_ups = 0;
+  go_to_next_level = 0;
   
 //  Delay1ms(30);              // delay 0.03 sec at 80 MHz
   
@@ -645,17 +664,19 @@ void Draw(void){ int i;
     // e.g. ghosts , power-up , pacman etc
     // using game_level objects
     init_game_level_objects();  
-    Timer2_Init(80000000/30);     // 30 Hz, for moving, and setting Semaphore  
+    Timer2_Init(80000000/30);     // 30 Hz
     SysTick_Init();                  // 11 kHz    
 
     // level loop
     while(1){
       while(Semaphore==0){}
       Semaphore = 0;          // reset flag
+      // read in buttons
+      Buttons_In();
       // read slide pot
       ADCdata = ADC0_In();
       // decide pacman's direction
-      // divide slide pot value (0 to 4095) into 3 sections 
+      // divide slide pot value (0 to 4095) into 3 sections          
       if(ADCdata < 1365){
         if(pac.orientation == ORIENTATIONH){
           pac.direction = DIRECTIONL;
@@ -675,14 +696,19 @@ void Draw(void){ int i;
       } else {
         pac.speed = DIRECTIONSTOP;
       }
-
       Move();           // move the necessary objects            
+      CollisionDectection();      // collision detection 
       Draw();           // draw the necessary objects
-      // do collision detection 
-      // Delay1ms(30);
+      
+      if(pac.pacman_state==DYING)     // to be removed / changed
+        break;
+      
+      
+      //Delay1ms(30);
       
       // if game is clear break, goes to next level, break from currnet level loop
       if(current_num_power_ups == game_level[current_game_level].num_power_up){
+        go_to_next_level = 1;
         break;
       }
       // if number of lives is 0 break, from level loop
@@ -695,7 +721,10 @@ void Draw(void){ int i;
       current_game_state = GAME_OVER;   
       break;
     }
-    current_game_level++;
+    if(go_to_next_level == 1){
+      go_to_next_level = 0;
+      current_game_level++;
+    }
     if(current_game_level>= MAXLEVELS){     
       // player has cleared all levels, break from game loop       
       current_game_level = MAXLEVELS-1;
@@ -709,8 +738,7 @@ void Draw(void){ int i;
   } else if (current_game_state == WIN_GAME){
     // win game scene
   }
-    
-  
+      
 }
   
   /*
@@ -775,8 +803,8 @@ void Timer2_Init(unsigned long period){
 }
 void Timer2A_Handler(void){ 
   TIMER2_ICR_R = 0x00000001;   // acknowledge timer2A timeout
-  TimerCount++;                    
-  Semaphore = 1; // trigger Draw() in the main while
+  TimerCount++;  
+  Semaphore = 1; // trigger Draw() and other functions in the main while
   // reading from slide pot
   // reading from buttons
   // move
@@ -805,7 +833,7 @@ void Delay1ms(unsigned long msec){
   }
 }
 void Splash_Screen(void){
-  Nokia5110_ClearBuffer();  
+  Nokia5110_Clear();  
   Nokia5110_PrintBMP(0, 47, img_splash_screen, 0);  
   Nokia5110_DisplayBuffer();
   Delay1ms(1000);                 // 1 second
@@ -824,7 +852,7 @@ void Splash_Screen(void){
   while((GPIO_PORTE_DATA_R&0x03) == 0){   // wait for user to press any button and go to next page
   }
   // page 2
-  Delay1ms(30);         // delay 30ms for button bounce
+  Delay1ms(40);         // delay 400ms for button bounce
   Nokia5110_Clear();
   Nokia5110_SetCursor(0, 0);
   Nokia5110_OutString(" (contd):");
@@ -835,9 +863,9 @@ void Splash_Screen(void){
   Nokia5110_SetCursor(0, 4);
   Nokia5110_OutString("Get power-up to shoot.");
   while((GPIO_PORTE_DATA_R&0x03) == 0){   // wait for user to press any button and go to game
-  }
-  Nokia5110_OutString("****");      // to be removed
-  Delay1ms(30);         // delay 30ms for button bounce
+  } 
+  Delay1ms(100);         // delay 40ms for button bounce and going to next screen
+  Nokia5110_Clear();  
 }
 
 void PortB_Init(void){
@@ -877,14 +905,14 @@ void PortE_Init(void){
 
 void Draw(void){ 
   int i;
-  Nokia5110_ClearBuffer();  
+  Nokia5110_ClearBuffer();    
   // draw pacman
   if(pac.pacman_state==ALIVE)
     Nokia5110_PrintBMP(pac.xpos, pac.ypos, pac.image[pac.direction][FrameCount], 0);
   // draw ghost
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
-    if(enemyGhost[i].ghost_state == ALIVE)
-      Nokia5110_PrintBMP(enemyGhost[i].xpos, enemyGhost[i].ypos, enemyGhost[i].image[FrameCount], 0);    
+    if(enemyGhosts[i].ghost_state == ALIVE)
+      Nokia5110_PrintBMP(enemyGhosts[i].xpos, enemyGhosts[i].ypos, enemyGhosts[i].image[FrameCount], 0);    
   }
   // draw power up
   for(i=0; i<game_level[current_game_level].num_power_up; i++){
@@ -897,7 +925,7 @@ void Draw(void){
       Nokia5110_PrintBMP(missiles[i].xpos, missiles[i].ypos, missiles[i].image[missiles[i].orientation][FrameCount], 0);    
   }
   Nokia5110_DisplayBuffer();      // draw buffer
-//  FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
+  FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
 }
 
 //------------ADC0_In------------
@@ -946,13 +974,47 @@ void MovePac(void){
       break;
     case DIRECTIONSTOP:
       break;
-  }   
+  } 
 }
 
 void MoveGhosts(void){
   int i=0;
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
-    if(enemyGhost[i].ghost_state == ALIVE)
+    if(enemyGhosts[i].ghost_state == ALIVE)
       ;
   }
 }
+
+void CollisionDectection(void){
+  int i=0;
+  double distance;
+  int pac_center_x, pac_center_y, ghost_center_x, ghost_center_y;
+  pac_center_x = pac.xpos + PACMANW/2;
+  pac_center_y = pac.ypos - PACMANH/2;
+  // detect pacman collide with ghosts
+  for(i=0; i<game_level[current_game_level].num_ghost; i++){
+    if(enemyGhosts[i].ghost_state == ALIVE){
+      ghost_center_x = enemyGhosts[i].xpos + GHOSTW/2;
+      ghost_center_y = enemyGhosts[i].ypos - GHOSTH/2;
+      distance = sqrt(pow((ghost_center_x - pac_center_x),2) + pow((ghost_center_y - pac_center_y),2));
+      if(distance < (PACMANW+GHOSTW)/2 ){
+        pac.pacman_state = DYING;
+        num_lives_left -= 1;
+        break;
+      }
+    }
+  }
+  // detect pacman collide with power-ups
+  // detect missiles collide with ghosts
+}
+
+void Buttons_In(void){
+  if(ROTATE){    
+    Delay1ms(40);
+    pac.orientation = !pac.orientation;   // rotate pacman
+  }
+  if(SHOOT){
+    Delay1ms(40);
+  }
+}
+
