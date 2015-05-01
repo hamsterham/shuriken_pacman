@@ -57,6 +57,8 @@
 #include "TExaS.h"
 #include "Math.h"
 #include "my_sound.h"
+#include "String.h"
+#include "stdio.h"
 
 void DisableInterrupts(void); // Disable interrupts
 void EnableInterrupts(void);  // Enable interrupts
@@ -451,7 +453,7 @@ const unsigned char img_shurikenB[] ={
   
 
 // Global Variable
-char current_game_level, num_lives_left , current_num_power_ups ;
+int current_game_level, num_lives_left , current_num_power_ups , score;
 unsigned long FrameCount = 0;
 unsigned char current_game_state = READY_GAME;
 unsigned long ADCdata;        // 12-bit data from slide pot, range 0 to 4095
@@ -613,6 +615,7 @@ void init_game_level_objects(){
   init_enemies(game_level[current_game_level].num_ghost);
   init_power_ups(game_level[current_game_level].num_power_up);
   init_shurikens(game_level[current_game_level].num_power_up);
+  current_num_power_ups = 0;    
 }
 
 /*
@@ -673,7 +676,7 @@ int main(void){
   init_game_levels();  
   
   EnableInterrupts(); // virtual Nokia uses UART0 interrupts
-  
+    
   // starting ==> display Splash screen and game info
 //  Splash_Screen();           // to uncomment
 
@@ -686,8 +689,11 @@ int main(void){
   num_lives_left = MAXLIVES;           // 3 lives
   current_num_power_ups = 0;
   go_to_next_level = 0;                 // flag
+  score = 0;
   
-//  Delay1ms(30);              // delay 0.03 sec at 80 MHz
+  // Delay1ms(30);              // delay 0.03 sec at 80 MHz
+  // DisplayWinGame();        // to be removed
+  // DisplayGameOver();          // to be removed
   
   // game loop
   while(current_game_state == PLAYING_GAME){
@@ -897,7 +903,8 @@ void Splash_Screen(void){
   Nokia5110_SetCursor(0, 2);
   Nokia5110_OutString("(B) shoot.");
   Nokia5110_SetCursor(0, 4);
-  Nokia5110_OutString("Get power-up to shoot.");
+  // Nokia5110_OutString("Get power-up to shoot.");
+  Nokia5110_OutString("1 power-up = 1 shuriken");
   while((GPIO_PORTE_DATA_R&0x03) == 0){   // wait for user to press any button and go to game
   } 
   Delay1ms(100);         // delay 40ms for button bounce and going to next screen
@@ -1074,8 +1081,29 @@ void Buttons_In(void){
 }
 
 void DisplayWinGame(void){
-  
+  char str[2];
+  Nokia5110_Clear();  
+  Nokia5110_SetCursor(2, 1);
+  Nokia5110_OutString("YOU WIN!!");
+  Nokia5110_SetCursor(0, 4);
+  Nokia5110_OutString("Score : ");
+  Nokia5110_SetCursor(7, 4);
+  sprintf(str, "%d", score);
+  Nokia5110_OutString(str);
+//  Delay1ms(1000);
 }
 
 void DisplayGameOver(void){
+  char str[2];
+  Nokia5110_Clear();  
+  Nokia5110_SetCursor(2, 1);
+  Nokia5110_OutString("YOU LOSE!");
+  Nokia5110_SetCursor(0, 4);
+  Nokia5110_OutString("Score : ");
+  Nokia5110_SetCursor(7, 4);
+  sprintf(str, "%d", score);
+  Nokia5110_OutString(str);
+  Nokia5110_SetCursor(0, 5);
+  Nokia5110_OutString("Good Game :\)");
+  Delay1ms(1000);
 }
