@@ -71,6 +71,7 @@ void PortE_Init(void);
 void Draw(void);
 void Move(void);
 void MovePac(void);
+void MoveShruikens(void);
 void MoveGhosts(void);
 void CollisionDectection(void);
 void Buttons_In(void);
@@ -407,7 +408,7 @@ const unsigned char img_shurikenB[] ={
 #define MISSILEHH             4
 #define MISSILEVW             4       // missile vertical dimensions
 #define MISSILEVH             10
-#define SHURIKEN              10      // shuriken tha pacman can shoot
+#define SHURIKEN              10      // shuriken 
 #define PACMANW               12      // PACMAN dimensions
 #define PACMANH               12
 #define GHOSTW                12      // GHOST dimensions
@@ -435,13 +436,15 @@ const unsigned char img_shurikenB[] ={
 #define SPD_STOP              0       
 #define SPD_LEFT_UP_SLOW      -1       // slow SPEED for different directions
 #define SPD_RIGHT_DOWN_SLOW   1       
+#define SPD_LEFT_UP_FAST      -3       // fast SPEED for different directions
+#define SPD_RIGHT_DOWN_FAST   3    
 
-#define ALIVE                 0       // states for various objects
-#define FLYING                1       // use for missile state
+#define DEAD                  0       // states for various objects
+#define ALIVE                 2       
+#define FLYING                1       // use for shuriken state
 #define DYING                 1
-#define DEAD                  2
 
-#define MAXLEVELS             5
+#define MAXLEVELS             5       // should be 5
 #define MAXLIVES              3       // maximum number of live to begin with
 #define MAX_NUM_ENEMIES       6       // maximum number of enemies
 #define MAX_NUM_POWERUPS      3       // maximum number of power-ups
@@ -498,8 +501,9 @@ struct shuriken_struct {
   int center_x, center_y;
   const unsigned char *image[2];
   unsigned char state;
-  unsigned char orientation;  // going horizontal or vertical
+  //unsigned char orientation;  // going horizontal or vertical
   unsigned char direction;  // direction pacman is facing
+  int speed;
 };
 
 
@@ -598,15 +602,16 @@ void init_power_ups(int num_power_up){
 void init_shurikens(int num_power_up){
  int i;
   for(i=0;i<num_power_up;i++){
-    shurikens[i].xpos = 0;
-    shurikens[i].ypos = 0 ;    
+    shurikens[i].xpos = i*20;
+    shurikens[i].ypos = SHURIKEN ;    
     shurikens[i].image[0] = img_shurikenA;
     shurikens[i].image[1] = img_shurikenB;
-    shurikens[i].state = DEAD;        // set default inactive
-    shurikens[i].orientation = ORIENTATIONV;  // default to vertical for time being
+    shurikens[i].state = ALIVE;        // set default inactive DEAD
+    //shurikens[i].orientation = ORIENTATIONV;  // default to vertical for time being
     shurikens[i].direction = DIRECTIOND;
     shurikens[i].center_x = shurikens[i].xpos + SHURIKEN/2;
     shurikens[i].center_y = shurikens[i].xpos - SHURIKEN/2;
+    shurikens[i].speed = 0;
   }
 }
 
@@ -988,7 +993,8 @@ void Move(void){
   MovePac();      // move pacman
   // move ghost
   // MoveGhosts();
-  // move missile    
+  // move shurikens
+  MoveShruikens();
 }
 
 void MovePac(void){
@@ -1022,11 +1028,11 @@ void MovePac(void){
 }
 
 void MoveGhosts(void){
-  int i=0;
+  /*int i=0;
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
     if(enemyGhosts[i].ghost_state == ALIVE)
       ;
-  }
+  }*/
 }
 
 void CollisionDectection(void){
@@ -1036,7 +1042,7 @@ void CollisionDectection(void){
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
     if(enemyGhosts[i].ghost_state == ALIVE){
       distance = sqrt(pow((enemyGhosts[i].center_x - pac.center_x),2) + pow((enemyGhosts[i].center_y - pac.center_y),2));
-      if(distance < (PACMANW+GHOSTW)/2 ){
+      if(distance <= (PACMANW+GHOSTW)/2 ){
         pac.pacman_state = DYING;
         num_lives_left -= 1;
         return;                // pacman's dead
@@ -1047,20 +1053,20 @@ void CollisionDectection(void){
   for(i=0; i<game_level[current_game_level].num_power_up; i++){
     if(powerups[i].powerup_state == ALIVE){
       distance = sqrt(pow((powerups[i].center_x - pac.center_x),2) + pow((powerups[i].center_x - pac.center_y),2));
-      if(distance < (PACMANW+POWERUP)/2 ){
+      if(distance <= (PACMANW+POWERUP)/2 ){
         powerups[i].powerup_state = DEAD;     // remove the power up
         current_num_power_ups++;              // increase the number of power up captured
         shurikens[i].state= ALIVE;    // set the corresponding missile alive, available for use
       }
     }
   }
-  // detect missiles collide with ghosts
+  // detect shurikens collide with ghosts
   for(i=0;i<game_level[current_game_level].num_power_up;i++){
-    if(shurikens[i].state == FLYING){      
-      for(j=0; i<game_level[current_game_level].num_ghost; i++){
+    if(shurikens[i].state == ALIVE){  // change to flying    
+      for(j=0; j<game_level[current_game_level].num_ghost; j++){
         if(enemyGhosts[j].ghost_state==ALIVE){
-          distance = sqrt(pow((shurikens[i].center_x - enemyGhosts[j].center_x),2) + pow((shurikens[i].center_y - enemyGhosts[j].center_y),2));
-          if(distance < (SHURIKEN+GHOSTW)/2){
+          distance = sqrt(pow((enemyGhosts[j].center_x - shurikens[i].center_x ),2) + pow((enemyGhosts[j].center_y - shurikens[i].center_y),2));
+          if(distance <= ((double)SHURIKEN+GHOSTW)/2){
             enemyGhosts[j].ghost_state = DYING;
             shurikens[i].state= DEAD;
           }
@@ -1106,4 +1112,36 @@ void DisplayGameOver(void){
   Nokia5110_SetCursor(0, 5);
   Nokia5110_OutString("Good Game :\)");
   Delay1ms(1000);
+}
+
+void MoveShruikens(void){
+  int i;
+  for(i=0;i<game_level[current_game_level].num_power_up;i++){
+    if(shurikens[i].state == ALIVE){
+      switch(shurikens[i].direction){
+        case DIRECTIONL:
+          shurikens[i].xpos += SPD_LEFT_UP_FAST;
+          if(shurikens[i].xpos < 0)
+            shurikens[i].state = DEAD;
+            break;
+        case DIRECTIONR:
+          shurikens[i].xpos += SPD_RIGHT_DOWN_FAST;
+          if(pac.xpos > SCREENW - SHURIKEN)
+          shurikens[i].state = DEAD;
+          break;
+        case DIRECTIOND:     
+          shurikens[i].ypos += SPD_RIGHT_DOWN_FAST;
+          if(pac.ypos > SCREENH)
+            shurikens[i].state = DEAD;
+            break;
+        case DIRECTIONU:
+          shurikens[i].ypos += SPD_LEFT_UP_FAST;
+          if(pac.ypos < SHURIKEN)
+            shurikens[i].state = DEAD;
+            break;
+        }
+        shurikens[i].center_x = shurikens[i].xpos + SHURIKEN/2;
+        shurikens[i].center_y = shurikens[i].ypos - SHURIKEN/2;
+      }
+    }
 }
