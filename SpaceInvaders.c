@@ -71,7 +71,6 @@ void PortE_Init(void);
 void Draw(void);
 void Move(void);
 void MovePac(void);
-void MoveShruikens(void);
 void MoveGhosts(void);
 void CollisionDectection(void);
 void Buttons_In(void);
@@ -436,8 +435,6 @@ const unsigned char img_shurikenB[] ={
 #define SPD_STOP              0       
 #define SPD_LEFT_UP_SLOW      -1       // slow SPEED for different directions
 #define SPD_RIGHT_DOWN_SLOW   1       
-#define SPD_LEFT_UP_FAST      -3       // fast SPEED for different directions
-#define SPD_RIGHT_DOWN_FAST   3    
 
 #define ALIVE                 0       // states for various objects
 #define FLYING                1       // use for missile state
@@ -501,9 +498,8 @@ struct shuriken_struct {
   int center_x, center_y;
   const unsigned char *image[2];
   unsigned char state;
-  //unsigned char orientation;  // going horizontal or vertical
+  unsigned char orientation;  // going horizontal or vertical
   unsigned char direction;  // direction pacman is facing
-  int speed;
 };
 
 
@@ -602,16 +598,15 @@ void init_power_ups(int num_power_up){
 void init_shurikens(int num_power_up){
  int i;
   for(i=0;i<num_power_up;i++){
-    shurikens[i].xpos = i*20;
-    shurikens[i].ypos = SHURIKEN ;    
+    shurikens[i].xpos = 0;
+    shurikens[i].ypos = 0 ;    
     shurikens[i].image[0] = img_shurikenA;
     shurikens[i].image[1] = img_shurikenB;
-    shurikens[i].state = ALIVE;        // set default inactive DEAD
-    //shurikens[i].orientation = ORIENTATIONV;  // default to vertical for time being
+    shurikens[i].state = DEAD;        // set default inactive
+    shurikens[i].orientation = ORIENTATIONV;  // default to vertical for time being
     shurikens[i].direction = DIRECTIOND;
     shurikens[i].center_x = shurikens[i].xpos + SHURIKEN/2;
     shurikens[i].center_y = shurikens[i].xpos - SHURIKEN/2;
-    shurikens[i].speed = 0;
   }
 }
 
@@ -993,8 +988,7 @@ void Move(void){
   MovePac();      // move pacman
   // move ghost
   // MoveGhosts();
-  // move shurikens
-  MoveShruikens();
+  // move missile    
 }
 
 void MovePac(void){
@@ -1112,36 +1106,4 @@ void DisplayGameOver(void){
   Nokia5110_SetCursor(0, 5);
   Nokia5110_OutString("Good Game :\)");
   Delay1ms(1000);
-}
-
-void MoveShruikens(void){
-  int i;
-  for(i=0;i<game_level[current_game_level].num_power_up;i++){
-    if(shurikens[i].state == ALIVE){
-      switch(shurikens[i].direction){
-        case DIRECTIONL:
-          shurikens[i].xpos += SPD_LEFT_UP_FAST;
-          if(shurikens[i].xpos < 0)
-            shurikens[i].state = DEAD;
-            break;
-        case DIRECTIONR:
-          shurikens[i].xpos += SPD_RIGHT_DOWN_FAST;
-          if(pac.xpos > SCREENW - SHURIKEN)
-          shurikens[i].state = DEAD;
-          break;
-        case DIRECTIOND:     
-          shurikens[i].ypos += SPD_RIGHT_DOWN_FAST;
-          if(pac.ypos > SCREENH)
-            shurikens[i].state = DEAD;
-            break;
-        case DIRECTIONU:
-          shurikens[i].ypos += SPD_LEFT_UP_FAST;
-          if(pac.ypos < SHURIKEN)
-            shurikens[i].state = DEAD;
-            break;
-        }
-        shurikens[i].center_x = shurikens[i].xpos + SHURIKEN/2;
-        shurikens[i].center_y = shurikens[i].ypos - SHURIKEN/2;
-      }
-    }
 }
