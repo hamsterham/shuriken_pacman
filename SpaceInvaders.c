@@ -74,8 +74,10 @@ void CollisionDectection(void);
 void Buttons_In(void);
 unsigned long ADC0_In(void);
 void OutofScreenChecks(void);
+void DisplayWinGame(void);
+void DisplayGameOver(void);
+  
 unsigned long TimerCount;
-unsigned long Semaphore;      // a flag for drawing
 
 
 // *************************** Images ***************************
@@ -371,6 +373,26 @@ const unsigned char img_splash_screen[] ={
  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF
 };
 
+const unsigned char img_shurikenA[] ={
+ 0x42, 0x4D, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x76, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x80,
+ 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x80, 0x00, 0x00, 0x80, 0x80, 0x80, 0x00, 0xC0, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF,
+ 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF,
+ 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0xFF,
+ 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF
+};
+
+const unsigned char img_shurikenB[] ={
+ 0x42, 0x4D, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x76, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x80,
+ 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x80, 0x00, 0x00, 0x80, 0x80, 0x80, 0x00, 0xC0, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF,
+ 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0xFF,
+ 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF
+};
+
 
 
 
@@ -383,11 +405,12 @@ const unsigned char img_splash_screen[] ={
 #define MISSILEHH             4
 #define MISSILEVW             4       // missile vertical dimensions
 #define MISSILEVH             10
+#define SHURIKEN              10      // shuriken tha pacman can shoot
 #define PACMANW               12      // PACMAN dimensions
 #define PACMANH               12
 #define GHOSTW                12      // GHOST dimensions
 #define GHOSTH                12
-#define POWERUP               12      // POWER-UP SQUARE dimensions+
+#define POWERUP               12      // POWER-UP SQUARE dimension
 
 #define READY_GAME            0       // game in initial stage
 #define PLAYING_GAME          1       // game is in play
@@ -411,7 +434,8 @@ const unsigned char img_splash_screen[] ={
 #define SPD_LEFT_UP_SLOW      -1       // slow SPEED for different directions
 #define SPD_RIGHT_DOWN_SLOW   1       
 
-#define ALIVE                 0       // for knowing when/what to animate
+#define ALIVE                 0       // states for various objects
+#define FLYING                1       // use for missile state
 #define DYING                 1
 #define DEAD                  2
 
@@ -430,8 +454,9 @@ const unsigned char img_splash_screen[] ={
 char current_game_level, num_lives_left , current_num_power_ups ;
 unsigned long FrameCount = 0;
 unsigned char current_game_state = READY_GAME;
-unsigned long ADCdata;    // 12-bit data from slide pot, range 0 to 4095
-int go_to_next_level = 0;
+unsigned long ADCdata;        // 12-bit data from slide pot, range 0 to 4095
+int go_to_next_level = 0;     // flag
+unsigned long Semaphore;      // a flag signaling 1 cycle of the 30Hz is up
 
 struct Game_Level { 
   unsigned char level;              // game level
@@ -441,7 +466,7 @@ struct Game_Level {
 
 struct pacmam_struct {
   int xpos, ypos;
-  //int center_x, center_y;
+  int center_x, center_y;
   unsigned char orientation;  // going horizontal or vertical
   unsigned char direction;  // direction pacman is facing
   unsigned char power_up;
@@ -452,7 +477,7 @@ struct pacmam_struct {
 
 struct enemyghost_struct {
   int xpos, ypos;   
-  // int center_x, center_y;
+  int center_x, center_y;
   const unsigned char *image[2];  // two pointers to images
   unsigned char ghost_state;  
   int speed;
@@ -461,17 +486,20 @@ struct enemyghost_struct {
 
 struct powerup_struct {
   int xpos, ypos;
+  int center_x, center_y;
   const unsigned char *image;
   unsigned char powerup_state;
 };
 
-struct missile_struct {
+struct shuriken_struct {
   int xpos, ypos;
-  const unsigned char *image[2][2];
-  unsigned char missile_state;
+  int center_x, center_y;
+  const unsigned char *image[2];
+  unsigned char state;
   unsigned char orientation;  // going horizontal or vertical
   unsigned char direction;  // direction pacman is facing
 };
+
 
 /*
 struct Floor_plan {         // 
@@ -485,14 +513,14 @@ typedef struct Game_Level     Level;
 typedef struct pacmam_struct  Pacman;
 typedef struct enemyghost_struct EnemyGhost;
 typedef struct powerup_struct PowerUp;
-typedef struct missile_struct Missile;
+typedef struct shuriken_struct Shuriken;
 //typedef struct Floor_plan     floor_plan;
 
 Level game_level[MAXLEVELS];
 Pacman pac;
 EnemyGhost enemyGhosts[MAX_NUM_ENEMIES];
 PowerUp powerups[MAX_NUM_POWERUPS] ;
-Missile missiles[MAX_NUM_POWERUPS];
+Shuriken shurikens[MAX_NUM_POWERUPS];
 //floor_plan floor_info[MAXLEVEL];
 
 void init_game_levels(void){
@@ -521,10 +549,10 @@ void init_pac(void){
   pac.orientation = ORIENTATIONH;      // degault to horizontal, facing right
   pac.direction = DIRECTIONR;
   pac.power_up = 0;
-  // pac.xpos = 0;
-  // pac.ypos = 47;  
   pac.xpos = 0;           // initial position
   pac.ypos = SCREENH;
+  pac.center_x= pac.xpos + PACMANW/2;
+  pac.center_y = pac.ypos - PACMANH/2;  
   pac.image[DIRECTIONL][0] = img_pacmanleftA;
   pac.image[DIRECTIONL][1] = img_pacmanleftB ;
   pac.image[DIRECTIONR][0] = img_pacmanrightA;
@@ -548,6 +576,8 @@ void init_enemies(int num_ghost){
     enemyGhosts[i].image[1] = img_enemyghostB;
     //enemyGhost[i].direction = 
     enemyGhosts[i].speed = SPD_STOP;
+    enemyGhosts[i].center_x =  enemyGhosts[i].xpos + GHOSTW/2;
+    enemyGhosts[i].center_y =  enemyGhosts[i].ypos - GHOSTH/2;
   }
 }
 
@@ -558,21 +588,23 @@ void init_power_ups(int num_power_up){
     powerups[i].ypos = Random()%(47 - POWERUP) + POWERUP;
     powerups[i].image = img_powerup;
     powerups[i].powerup_state = ALIVE;
+    powerups[i].center_x = powerups[i].xpos + POWERUP/2;
+    powerups[i].center_y = powerups[i].ypos - POWERUP/2;
   }
 }
 
-void init_missiles(int num_power_up){
+void init_shurikens(int num_power_up){
  int i;
   for(i=0;i<num_power_up;i++){
-    missiles[i].xpos = 0;
-    missiles[i].ypos = 0 ;    
-    missiles[i].image[ORIENTATIONH][0] = img_MissileH0;
-    missiles[i].image[ORIENTATIONH][1] = img_MissileH1;
-    missiles[i].image[ORIENTATIONV][0] = img_MissileV0;
-    missiles[i].image[ORIENTATIONV][1] = img_MissileV1;
-    missiles[i].missile_state = DEAD;        // set default inactive
-    missiles[i].orientation = ORIENTATIONV;
-    missiles[i].direction = DIRECTIOND;
+    shurikens[i].xpos = 0;
+    shurikens[i].ypos = 0 ;    
+    shurikens[i].image[0] = img_shurikenA;
+    shurikens[i].image[1] = img_shurikenB;
+    shurikens[i].state = DEAD;        // set default inactive
+    shurikens[i].orientation = ORIENTATIONV;  // default to vertical for time being
+    shurikens[i].direction = DIRECTIOND;
+    shurikens[i].center_x = shurikens[i].xpos + SHURIKEN/2;
+    shurikens[i].center_y = shurikens[i].xpos - SHURIKEN/2;
   }
 }
 
@@ -580,7 +612,7 @@ void init_game_level_objects(){
   init_pac();
   init_enemies(game_level[current_game_level].num_ghost);
   init_power_ups(game_level[current_game_level].num_power_up);
-  init_missiles(game_level[current_game_level].num_power_up);
+  init_shurikens(game_level[current_game_level].num_power_up);
 }
 
 /*
@@ -653,7 +685,7 @@ int main(void){
   current_game_state = PLAYING_GAME;    // game starts  
   num_lives_left = MAXLIVES;           // 3 lives
   current_num_power_ups = 0;
-  go_to_next_level = 0;
+  go_to_next_level = 0;                 // flag
   
 //  Delay1ms(30);              // delay 0.03 sec at 80 MHz
   
@@ -696,11 +728,13 @@ int main(void){
       } else {
         pac.speed = DIRECTIONSTOP;
       }
-      Move();           // move the necessary objects            
-      CollisionDectection();      // collision detection 
+      Move();           // move the necessary objects    
+      // do collision detection only when pacman's alive
+      if(pac.pacman_state == ALIVE)
+        CollisionDectection();      
       Draw();           // draw the necessary objects
       
-      if(pac.pacman_state==DYING)     // to be removed / changed
+      if(pac.pacman_state==DYING)     // to be removed or changed
         break;
       
       
@@ -708,11 +742,13 @@ int main(void){
       
       // if game is clear break, goes to next level, break from currnet level loop
       if(current_num_power_ups == game_level[current_game_level].num_power_up){
+        current_num_power_ups = 0;
         go_to_next_level = 1;
         break;
       }
       // if number of lives is 0 break, from level loop
       if(num_lives_left == 0){
+        current_num_power_ups = 0;
         break;
       }
     }
@@ -722,7 +758,7 @@ int main(void){
       break;
     }
     if(go_to_next_level == 1){
-      go_to_next_level = 0;
+      go_to_next_level = 0;       // reset flag
       current_game_level++;
     }
     if(current_game_level>= MAXLEVELS){     
@@ -919,10 +955,10 @@ void Draw(void){
     if(powerups[i].powerup_state == ALIVE)
       Nokia5110_PrintBMP(powerups[i].xpos, powerups[i].ypos, powerups[i].image, 0);    
   }  
-  // draw missile
+  // draw shurikens
   for(i=0; i<MAX_NUM_POWERUPS; i++){
-    if(missiles[i].missile_state == ALIVE)
-      Nokia5110_PrintBMP(missiles[i].xpos, missiles[i].ypos, missiles[i].image[missiles[i].orientation][FrameCount], 0);    
+    if(shurikens[i].state == ALIVE)
+      Nokia5110_PrintBMP(shurikens[i].xpos, shurikens[i].ypos, shurikens[i].image[FrameCount], 0);    
   }
   Nokia5110_DisplayBuffer();      // draw buffer
   FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
@@ -941,9 +977,8 @@ unsigned long ADC0_In(void){
   return result;
 }
 
-void Move(void){
-  // move pacman
-  MovePac();
+void Move(void){  
+  MovePac();      // move pacman
   // move ghost
   // MoveGhosts();
   // move missile    
@@ -975,6 +1010,8 @@ void MovePac(void){
     case DIRECTIONSTOP:
       break;
   } 
+  pac.center_x = pac.xpos + PACMANW/2;
+  pac.center_y = pac.ypos - PACMANH/2;
 }
 
 void MoveGhosts(void){
@@ -986,26 +1023,44 @@ void MoveGhosts(void){
 }
 
 void CollisionDectection(void){
-  int i=0;
+  int i=0, j=0;
   double distance;
-  int pac_center_x, pac_center_y, ghost_center_x, ghost_center_y;
-  pac_center_x = pac.xpos + PACMANW/2;
-  pac_center_y = pac.ypos - PACMANH/2;
-  // detect pacman collide with ghosts
+  // detect pacman collide with ghosts  
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
     if(enemyGhosts[i].ghost_state == ALIVE){
-      ghost_center_x = enemyGhosts[i].xpos + GHOSTW/2;
-      ghost_center_y = enemyGhosts[i].ypos - GHOSTH/2;
-      distance = sqrt(pow((ghost_center_x - pac_center_x),2) + pow((ghost_center_y - pac_center_y),2));
+      distance = sqrt(pow((enemyGhosts[i].center_x - pac.center_x),2) + pow((enemyGhosts[i].center_y - pac.center_y),2));
       if(distance < (PACMANW+GHOSTW)/2 ){
         pac.pacman_state = DYING;
         num_lives_left -= 1;
-        break;
+        return;                // pacman's dead
       }
     }
   }
-  // detect pacman collide with power-ups
+  // detect pacman collide with power-ups  
+  for(i=0; i<game_level[current_game_level].num_power_up; i++){
+    if(powerups[i].powerup_state == ALIVE){
+      distance = sqrt(pow((powerups[i].center_x - pac.center_x),2) + pow((powerups[i].center_x - pac.center_y),2));
+      if(distance < (PACMANW+POWERUP)/2 ){
+        powerups[i].powerup_state = DEAD;     // remove the power up
+        current_num_power_ups++;              // increase the number of power up captured
+        shurikens[i].state= ALIVE;    // set the corresponding missile alive, available for use
+      }
+    }
+  }
   // detect missiles collide with ghosts
+  for(i=0;i<game_level[current_game_level].num_power_up;i++){
+    if(shurikens[i].state == FLYING){      
+      for(j=0; i<game_level[current_game_level].num_ghost; i++){
+        if(enemyGhosts[j].ghost_state==ALIVE){
+          distance = sqrt(pow((shurikens[i].center_x - enemyGhosts[j].center_x),2) + pow((shurikens[i].center_y - enemyGhosts[j].center_y),2));
+          if(distance < (SHURIKEN+GHOSTW)/2){
+            enemyGhosts[j].ghost_state = DYING;
+            shurikens[i].state= DEAD;
+          }
+        }
+      }
+    }
+  }
 }
 
 void Buttons_In(void){
@@ -1018,3 +1073,9 @@ void Buttons_In(void){
   }
 }
 
+void DisplayWinGame(void){
+  
+}
+
+void DisplayGameOver(void){
+}
