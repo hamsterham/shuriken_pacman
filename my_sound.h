@@ -6,7 +6,8 @@
 // November 19, 2012
 
 void Play(void);
-void SysTick_Init(void);
+// void SysTick_Init(void);
+void SysTick_Init(unsigned long period);
 void DAC_Out(unsigned long data);
 void SysTick_Handler(void);
 void Sound_Play(const unsigned char *pt, unsigned long count);

@@ -48,8 +48,8 @@
 // 4*R resistor DAC bit 1 on PB1
 // 2*R resistor DAC bit 2 on PB2
 // 1*R resistor DAC bit 3 on PB3 (most significant bit)
-// LED on PB4
-// LED on PB5
+// LED on PB4, signal can shoot
+// LED on PB5, flashes, signals a kill/powerup
 
 #include "tm4c123gh6pm.h"
 #include "Nokia5110.h"
@@ -380,9 +380,9 @@ const unsigned char img_shurikenA[] ={
  0x42, 0x4D, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x76, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x80,
  0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x80, 0x00, 0x00, 0x80, 0x80, 0x80, 0x00, 0xC0, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF,
- 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF,
- 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0xFF,
- 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF
 };
 
@@ -391,13 +391,10 @@ const unsigned char img_shurikenB[] ={
  0x00, 0x00, 0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x80,
  0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x80, 0x00, 0x00, 0x80, 0x80, 0x80, 0x00, 0xC0, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF,
  0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
- 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0xFF,
- 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x0F, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF
 };
-
-
-
 
 
 // *************************** Capture image dimensions out of BMP**********
@@ -437,7 +434,7 @@ const unsigned char img_shurikenB[] ={
 #define SPD_LEFT_UP_SLOW      -1       // slow SPEED for different directions
 #define SPD_RIGHT_DOWN_SLOW   1       
 #define SPD_LEFT_UP_FAST      -3       // fast SPEED for different directions
-#define SPD_RIGHT_DOWN_FAST   3    
+#define SPD_RIGHT_DOWN_FAST   5    
 
 #define DEAD                  0       // states for various objects
 #define ALIVE                 2       
@@ -453,8 +450,11 @@ const unsigned char img_shurikenB[] ={
 #define ROTATE 					(*((volatile unsigned long *)0x40024004))
 // PE 1 - shoot button
 #define SHOOT 					(*((volatile unsigned long *)0x40024008))
+// PB 4 Shoot LED
+#define SHOOTLED        (*((volatile unsigned long *)0x40005040))
+// PB 5 Shoot LED
+#define FLASHLED        (*((volatile unsigned long *)0x40005080))
   
-
 // Global Variable
 int current_game_level, num_lives_left , current_num_power_ups , score;
 unsigned long FrameCount = 0;
@@ -474,7 +474,7 @@ struct pacmam_struct {
   int center_x, center_y;
   unsigned char orientation;  // going horizontal or vertical
   unsigned char direction;  // direction pacman is facing
-  unsigned char power_up;
+  //unsigned char power_up;
   const unsigned char *image[4][2];  // 4 directions, each two pointers to images
   unsigned char pacman_state;
   int speed;
@@ -554,7 +554,7 @@ void init_game_levels(void){
 void init_pac(void){
   pac.orientation = ORIENTATIONH;      // degault to horizontal, facing right
   pac.direction = DIRECTIONR;
-  pac.power_up = 0;
+  //pac.power_up = 0;
   pac.xpos = 0;           // initial position
   pac.ypos = SCREENH;
   pac.center_x= pac.xpos + PACMANW/2;
@@ -616,11 +616,20 @@ void init_shurikens(int num_power_up){
 }
 
 void init_game_level_objects(){  
+  char str[2];
   init_pac();
   init_enemies(game_level[current_game_level].num_ghost);
   init_power_ups(game_level[current_game_level].num_power_up);
   init_shurikens(game_level[current_game_level].num_power_up);
-  current_num_power_ups = 0;    
+  current_num_power_ups = 0;       
+  go_to_next_level = 0;         // reset flag
+  Nokia5110_Clear();    
+  Nokia5110_SetCursor(3, 1);
+  Nokia5110_OutString("Level");
+  Nokia5110_SetCursor(5, 2);
+  sprintf(str, "%d", current_game_level+1);
+  Nokia5110_OutString(str);  
+  //Delay1ms(800);
 }
 
 /*
@@ -689,7 +698,7 @@ int main(void){
 	//Nokia5110_DisplayBuffer();      // draw buffer
 
   // set global parameter
-  current_game_level = MAXLEVELS-1;      // 0 to 4
+  current_game_level = 0 ; //MAXLEVELS-1;      // 0 to 4 to set to 0
   current_game_state = PLAYING_GAME;    // game starts  
   num_lives_left = MAXLIVES;           // 3 lives
   current_num_power_ups = 0;
@@ -708,8 +717,8 @@ int main(void){
     // using game_level objects
     init_game_level_objects();  
     Timer2_Init(80000000/30);     // 30 Hz
-    SysTick_Init();                  // 11 kHz    
-
+    SysTick_Init(80000000/11025);                  // 11 kHz    
+    
     // level loop
     while(1){
       while(Semaphore==0){}
@@ -717,8 +726,7 @@ int main(void){
       // read in buttons
       Buttons_In();
       // read slide pot
-      ADCdata = ADC0_In();
-        
+      ADCdata = ADC0_In();        
       // decide pacman's direction
       // divide slide pot value (0 to 4095) into 3 sections        
       if(ADCdata < 1365){
@@ -746,14 +754,22 @@ int main(void){
       if(pac.pacman_state == ALIVE)
         CollisionDectection();      
       Draw();           // draw the necessary objects
-      
-      if(pac.pacman_state==DYING)     // to be removed or changed
-        break;
-      
-      
+
+      //if(pac.pacman_state==DYING)     // to be removed or changed
+        //break;
+            
       //Delay1ms(30);
       
-      // if game is clear break, goes to next level, break from currnet level loop
+      if(pac.pacman_state == DYING){      // to be set to DEAD
+        current_num_power_ups = 0;        // reset
+        break;                            // break from level loop
+      } else if(current_num_power_ups == game_level[current_game_level].num_power_up){
+        current_num_power_ups = 0;        // reset
+        go_to_next_level = 1;             // set flag
+        break;
+      }
+      
+      /*// if game is cleared break, goes to next level, break from currnet level loop
       if(current_num_power_ups == game_level[current_game_level].num_power_up){
         current_num_power_ups = 0;
         go_to_next_level = 1;
@@ -763,8 +779,11 @@ int main(void){
       if(num_lives_left == 0){
         current_num_power_ups = 0;
         break;
-      }
+      }*/
+    
+   
     }
+       
     if(num_lives_left == 0){
       // player has no more lives, break from game loop            
       current_game_state = GAME_OVER;   
@@ -780,12 +799,14 @@ int main(void){
       current_game_state = WIN_GAME;
       break;
     }
+    
   }
   if(current_game_state == GAME_OVER){
-  // lose game scene
-    ;
+    // lose game scene
+    DisplayGameOver();
   } else if (current_game_state == WIN_GAME){
     // win game scene
+    DisplayWinGame();
   }
       
 }
@@ -859,6 +880,7 @@ void Timer2A_Handler(void){
   // move
   // play sound, invoke systick
 }
+
 void Delay100ms(unsigned long count){
   unsigned long volatile time;
   while(count>0){
@@ -957,23 +979,27 @@ void Draw(void){
   int i;
   Nokia5110_ClearBuffer();    
   // draw pacman
-  if(pac.pacman_state == ALIVE)
-    Nokia5110_PrintBMP(pac.xpos, pac.ypos, pac.image[pac.direction][FrameCount], 0);
+  if(pac.pacman_state == ALIVE){  
+    Nokia5110_PrintBMP(pac.xpos, pac.ypos, pac.image[pac.direction][FrameCount], 0);  
+  }
   // draw ghost
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
-    if(enemyGhosts[i].ghost_state == ALIVE)
+    if(enemyGhosts[i].ghost_state == ALIVE){ 
       Nokia5110_PrintBMP(enemyGhosts[i].xpos, enemyGhosts[i].ypos, enemyGhosts[i].image[FrameCount], 0);    
+    }
   }
   // draw power up
   for(i=0; i<game_level[current_game_level].num_power_up; i++){
-    if(powerups[i].powerup_state == ALIVE)
-      Nokia5110_PrintBMP(powerups[i].xpos, powerups[i].ypos, powerups[i].image, 0);    
+    if(powerups[i].powerup_state == ALIVE){   
+      Nokia5110_PrintBMP(powerups[i].xpos, powerups[i].ypos, powerups[i].image, 0);        
+    }
   }  
   // draw shurikens
-  for(i=0; i<MAX_NUM_POWERUPS; i++){
-    if(shurikens[i].state == FLYING)
-      Nokia5110_PrintBMP(shurikens[i].xpos, shurikens[i].ypos, shurikens[i].image[FrameCount], 0);    
-  }   
+  for(i=0; i<MAX_NUM_POWERUPS; i++){    
+    if(shurikens[i].state == FLYING){    
+      Nokia5110_PrintBMP(shurikens[i].xpos, shurikens[i].ypos, shurikens[i].image[FrameCount], 0);          
+    }   
+  }
   Nokia5110_DisplayBuffer();      // draw buffer
   FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
 }
@@ -993,8 +1019,7 @@ unsigned long ADC0_In(void){
 
 void Move(void){  
   MovePac();            // move pacman
-  // move ghost
-  // MoveGhosts();  
+  MoveGhosts();      // move ghost  
   MoveShruikens();      // move shurikens
 }
 
@@ -1028,11 +1053,38 @@ void MovePac(void){
 }
 
 void MoveGhosts(void){
-  /*int i=0;
+  int i=0;
+  int chase=0;
+  double dist=0, new_dist=0;
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
-    if(enemyGhosts[i].ghost_state == ALIVE)
-      ;
-  }*/
+    if(enemyGhosts[i].ghost_state == ALIVE){
+      chase = Random()%8 + 1;     // 1 to 8
+      switch(chase){
+        case 1:
+          enemyGhosts[i].xpos += SPD_LEFT_UP_NORM;
+          if(enemyGhosts[i].xpos < 0)
+            enemyGhosts[i].xpos = 0;          
+          break;
+        case 2:
+          enemyGhosts[i].xpos += SPD_RIGHT_DOWN_NORM;
+          if(enemyGhosts[i].xpos > SCREENW - GHOSTW)
+            enemyGhosts[i].xpos = SCREENW - GHOSTW;
+          break;
+        case 3:
+          enemyGhosts[i].ypos += SPD_RIGHT_DOWN_NORM;
+          if(enemyGhosts[i].ypos > SCREENH)
+            enemyGhosts[i].ypos = SCREENH;
+          break;
+        case 4:
+          enemyGhosts[i].ypos += SPD_LEFT_UP_NORM;
+          if(enemyGhosts[i].ypos < GHOSTH)
+            enemyGhosts[i].ypos = GHOSTH;
+          break;
+      }      
+      enemyGhosts[i].center_x = enemyGhosts[i].xpos + GHOSTW/2;
+      enemyGhosts[i].center_y = enemyGhosts[i].ypos - GHOSTH/2;
+    }      
+  }
 }
 
 void CollisionDectection(void){
@@ -1042,20 +1094,21 @@ void CollisionDectection(void){
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
     if(enemyGhosts[i].ghost_state == ALIVE){
       distance = sqrt(pow((enemyGhosts[i].center_x - pac.center_x),2) + pow((enemyGhosts[i].center_y - pac.center_y),2));
-      if(distance <= (PACMANW+GHOSTW)/2 ){
+      if(distance <= (PACMANW+GHOSTW)/2 - 2){
         pac.pacman_state = DYING;
         num_lives_left -= 1;
-        return;                // pacman's dead
+        return;                // pacman's dying
       }
     }
   }
   // detect pacman collide with power-ups  
   for(i=0; i<game_level[current_game_level].num_power_up; i++){
     if(powerups[i].powerup_state == ALIVE){
-      distance = sqrt(pow((powerups[i].center_x - pac.center_x),2) + pow((powerups[i].center_x - pac.center_y),2));
-      if(distance <= (PACMANW+POWERUP)/2 ){
+      distance = sqrt(pow((powerups[i].center_x - pac.center_x),2) + pow((powerups[i].center_y - pac.center_y),2));
+      if(distance <= (PACMANW+POWERUP)/2 - 2){
         powerups[i].powerup_state = DEAD;     // remove the power up
         current_num_power_ups++;              // increase the number of power up captured
+        // current_num_power_ups=MAX_NUM_POWERUPS;     // win immediately, to be removed
         shurikens[i].state= ALIVE;    // set the corresponding missile alive, available for use
       }
     }
@@ -1066,7 +1119,7 @@ void CollisionDectection(void){
       for(j=0; j<game_level[current_game_level].num_ghost; j++){
         if(enemyGhosts[j].ghost_state==ALIVE){
           distance = sqrt(pow((enemyGhosts[j].center_x - shurikens[i].center_x ),2) + pow((enemyGhosts[j].center_y - shurikens[i].center_y),2));
-          if(distance <= ((double)SHURIKEN+GHOSTW)/2){
+          if(distance <= ((double)SHURIKEN+GHOSTW)/2 - 2){
             enemyGhosts[j].ghost_state = DYING;
             shurikens[i].state= DEAD;
           }
@@ -1089,9 +1142,8 @@ void Buttons_In(void){
       if(shurikens[i].state == ALIVE){  
         shurikens[i].state = FLYING;
         shurikens[i].direction = pac.direction;
-        shurikens[i].xpos = pac.xpos;
-        shurikens[i].ypos = pac.ypos;
-        
+        shurikens[i].xpos = pac.xpos;         // set to pacman's position
+        shurikens[i].ypos = pac.ypos;        
         break;      // shoot only once
       }        
     }
@@ -1157,3 +1209,12 @@ void MoveShruikens(void){
       }
     }
 }
+
+void ShootLEDOnOff(unsigned char OnOff){
+  // PB4 ON signals powerup captured, can shoot
+}
+void FlashLED(void){
+  // PB5, LED flashes signals a kill/powerup captured
+}
+
+

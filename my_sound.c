@@ -1167,15 +1167,15 @@ void DAC_Out(unsigned long data){
 // Initialize Systick periodic interrupts
 // Input: none
 // Output: none
-void SysTick_Init(void){    
+void SysTick_Init(unsigned long period){    
   NVIC_ST_CTRL_R = 0;         // disable SysTick during setup
-  NVIC_ST_RELOAD_R = 80000000/11025;   // reload value
+  NVIC_ST_RELOAD_R = period;   // reload value
   NVIC_ST_CURRENT_R = 0;      // any write to current clears it
   NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R&0x00FFFFFF)|0x20000000; // priority 1      
 }
 
 void SysTick_Handler(void){
-    Play();
+    Play();  
 }
 
 void Sound_Play(const unsigned char *pt, unsigned long count){
