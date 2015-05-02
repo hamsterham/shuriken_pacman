@@ -503,7 +503,7 @@ struct shuriken_struct {
   unsigned char state;
   //unsigned char orientation;  // going horizontal or vertical
   unsigned char direction;  // direction pacman is facing
-  int speed;
+//  int speed;
 };
 
 
@@ -606,12 +606,12 @@ void init_shurikens(int num_power_up){
     shurikens[i].ypos = SHURIKEN ;    
     shurikens[i].image[0] = img_shurikenA;
     shurikens[i].image[1] = img_shurikenB;
-    shurikens[i].state = ALIVE;        // set default inactive DEAD
+    shurikens[i].state = DEAD;        // set default inactive DEAD
     //shurikens[i].orientation = ORIENTATIONV;  // default to vertical for time being
     shurikens[i].direction = DIRECTIOND;
     shurikens[i].center_x = shurikens[i].xpos + SHURIKEN/2;
     shurikens[i].center_y = shurikens[i].xpos - SHURIKEN/2;
-    shurikens[i].speed = 0;
+    //shurikens[i].speed = 0;
   }
 }
 
@@ -718,8 +718,9 @@ int main(void){
       Buttons_In();
       // read slide pot
       ADCdata = ADC0_In();
+        
       // decide pacman's direction
-      // divide slide pot value (0 to 4095) into 3 sections          
+      // divide slide pot value (0 to 4095) into 3 sections        
       if(ADCdata < 1365){
         if(pac.orientation == ORIENTATIONH){
           pac.direction = DIRECTIONL;
@@ -739,6 +740,7 @@ int main(void){
       } else {
         pac.speed = DIRECTIONSTOP;
       }
+      
       Move();           // move the necessary objects    
       // do collision detection only when pacman's alive
       if(pac.pacman_state == ALIVE)
@@ -955,7 +957,7 @@ void Draw(void){
   int i;
   Nokia5110_ClearBuffer();    
   // draw pacman
-  if(pac.pacman_state==ALIVE)
+  if(pac.pacman_state == ALIVE)
     Nokia5110_PrintBMP(pac.xpos, pac.ypos, pac.image[pac.direction][FrameCount], 0);
   // draw ghost
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
@@ -969,9 +971,9 @@ void Draw(void){
   }  
   // draw shurikens
   for(i=0; i<MAX_NUM_POWERUPS; i++){
-    if(shurikens[i].state == ALIVE)
+    if(shurikens[i].state == FLYING)
       Nokia5110_PrintBMP(shurikens[i].xpos, shurikens[i].ypos, shurikens[i].image[FrameCount], 0);    
-  }
+  }   
   Nokia5110_DisplayBuffer();      // draw buffer
   FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
 }
@@ -990,15 +992,13 @@ unsigned long ADC0_In(void){
 }
 
 void Move(void){  
-  MovePac();      // move pacman
+  MovePac();            // move pacman
   // move ghost
-  // MoveGhosts();
-  // move shurikens
-  MoveShruikens();
+  // MoveGhosts();  
+  MoveShruikens();      // move shurikens
 }
 
-void MovePac(void){
-  // move pacman
+void MovePac(void){    
   switch(pac.speed){
     case DIRECTIONL:
       pac.xpos += SPD_LEFT_UP_NORM;
@@ -1024,7 +1024,7 @@ void MovePac(void){
       break;
   } 
   pac.center_x = pac.xpos + PACMANW/2;
-  pac.center_y = pac.ypos - PACMANH/2;
+  pac.center_y = pac.ypos - PACMANH/2;  
 }
 
 void MoveGhosts(void){
@@ -1062,7 +1062,7 @@ void CollisionDectection(void){
   }
   // detect shurikens collide with ghosts
   for(i=0;i<game_level[current_game_level].num_power_up;i++){
-    if(shurikens[i].state == ALIVE){  // change to flying    
+    if(shurikens[i].state == FLYING){  
       for(j=0; j<game_level[current_game_level].num_ghost; j++){
         if(enemyGhosts[j].ghost_state==ALIVE){
           distance = sqrt(pow((enemyGhosts[j].center_x - shurikens[i].center_x ),2) + pow((enemyGhosts[j].center_y - shurikens[i].center_y),2));
@@ -1077,12 +1077,24 @@ void CollisionDectection(void){
 }
 
 void Buttons_In(void){
+  int i;
   if(ROTATE){    
     Delay1ms(40);
     pac.orientation = !pac.orientation;   // rotate pacman
   }
   if(SHOOT){
     Delay1ms(40);
+    // set a shuriken to FLYING if there's one available
+    for(i=0;i<game_level[current_game_level].num_power_up;i++){
+      if(shurikens[i].state == ALIVE){  
+        shurikens[i].state = FLYING;
+        shurikens[i].direction = pac.direction;
+        shurikens[i].xpos = pac.xpos;
+        shurikens[i].ypos = pac.ypos;
+        
+        break;      // shoot only once
+      }        
+    }
   }
 }
 
@@ -1117,7 +1129,7 @@ void DisplayGameOver(void){
 void MoveShruikens(void){
   int i;
   for(i=0;i<game_level[current_game_level].num_power_up;i++){
-    if(shurikens[i].state == ALIVE){
+    if(shurikens[i].state == FLYING){
       switch(shurikens[i].direction){
         case DIRECTIONL:
           shurikens[i].xpos += SPD_LEFT_UP_FAST;
