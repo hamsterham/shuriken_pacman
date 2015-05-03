@@ -82,6 +82,7 @@ void OutofScreenChecks(void);
 void DisplayWinGame(void);
 void DisplayGameOver(void);
 void ShootLEDOnOff(void);
+void GhostDesiredDirection(int ghost_index);
   
 unsigned long TimerCount;
 
@@ -279,11 +280,14 @@ const unsigned char img_powerup[] ={
  0x42, 0x4D, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x76, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x50, 0x00, 0x00, 0x00, 0xC4, 0x0E, 0x00, 0x00, 0xC4, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x80,
  0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x80, 0x00, 0x00, 0x80, 0x80, 0x80, 0x00, 0xC0, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF,
- 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
- 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xF0, 0xFF, 0x0F, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0xF0,
- 0xFF, 0x0F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
- 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF
+ 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xF0, 0xFF, 0x0F, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0xF0,
+ 0xFF, 0x0F, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+
 };
+
+
 
 
 
@@ -452,8 +456,7 @@ struct pacmam_struct {
   int xpos, ypos;
   int center_x, center_y;
   unsigned char orientation;  // going horizontal or vertical
-  unsigned char direction;  // direction pacman is facing
-  //unsigned char power_up;
+  unsigned char direction;  // direction pacman is facing  
   const unsigned char *image[4][2];  // 4 directions, each two pointers to images
   const unsigned char *image_dying[11];  // for animating DYING pacman only
   unsigned char pacman_state;
@@ -536,8 +539,7 @@ void init_game_levels(void){
 
 void init_pac(void){
   pac.orientation = ORIENTATIONH;      // degault to horizontal, facing right
-  pac.direction = DIRECTIONR;
-  //pac.power_up = 0;
+  pac.direction = DIRECTIONR;  
   pac.xpos = 0;           // initial position
   pac.ypos = SCREENH;
   pac.center_x= pac.xpos + PACMANW/2;
@@ -577,8 +579,6 @@ void init_enemies(int num_ghost){
     enemyGhosts[i].ypos = Random()%(47 - GHOSTH) + GHOSTH;
     enemyGhosts[i].image[0] = img_enemyghostA;
     enemyGhosts[i].image[1] = img_enemyghostB;
-    //enemyGhost[i].direction = 
-    //enemyGhosts[i].speed = SPD_STOP;
     enemyGhosts[i].center_x =  enemyGhosts[i].xpos + GHOSTW/2;
     enemyGhosts[i].center_y =  enemyGhosts[i].ypos - GHOSTH/2;
     enemyGhosts[i].dying_FrameCounter = 0;
@@ -615,12 +615,10 @@ void init_shurikens(int num_power_up){
     shurikens[i].ypos = SHURIKEN ;    
     shurikens[i].image[0] = img_shurikenA;
     shurikens[i].image[1] = img_shurikenB;
-    shurikens[i].state = DEAD;        // set default inactive DEAD
-    //shurikens[i].orientation = ORIENTATIONV;  // default to vertical for time being
+    shurikens[i].state = DEAD;        // set default inactive DEAD    
     shurikens[i].direction = DIRECTIOND;
     shurikens[i].center_x = shurikens[i].xpos + SHURIKEN/2;
-    shurikens[i].center_y = shurikens[i].xpos - SHURIKEN/2;
-    //shurikens[i].speed = 0;
+    shurikens[i].center_y = shurikens[i].xpos - SHURIKEN/2;    
   }
 }
 
@@ -638,56 +636,10 @@ void init_game_level_objects(){
   Nokia5110_OutString("Level");
   Nokia5110_SetCursor(5, 2);
   sprintf(str, "%d", current_game_level+1);
-  Nokia5110_OutString(str);  
-  //Delay1ms(800);
-}
-
-/*
-struct State {
-  unsigned long x;      // x coordinate
-  unsigned long y;      // y coordinate
-  const unsigned char *image[2]; // two pointers to images
-  long life;            // 0=dead, 1=alive
-};         
-typedef struct State STyp;
-
-STyp Enemy[4];
-void Init(void){ int i;
-  for(i=0;i<4;i++){
-    Enemy[i].x = 20*i;
-    Enemy[i].y = 10;
-//    Enemy[i].image[0] = SmallEnemy30PointA;
-    //Enemy[i].image[1] = SmallEnemy30PointB;
-    Enemy[i].life = 1;
-   }
+  Nokia5110_OutString(str);    
 }
 
 
-void Move(void){ int i;
-  // move enemies
-  // move pacman
-  // move bullets
-  // check collision, decide any outcome
-  for(i=0;i<4;i++){
-    if(Enemy[i].x < 72){
-      Enemy[i].x += 1; // move to right
-    }else{
-      Enemy[i].life = 0;
-    }
-  }
-}
-
-void Draw(void){ int i;
-  Nokia5110_ClearBuffer();
-  for(i=0;i<4;i++){
-    if(Enemy[i].life > 0){
-     Nokia5110_PrintBMP(Enemy[i].x, Enemy[i].y, Enemy[i].image[FrameCount], 0);
-    }
-  }
-  Nokia5110_DisplayBuffer();      // draw buffer
-  FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
-}
-*/
  int main(void){      
   TExaS_Init(NoLCD_NoScope);  // set system clock to 80 MHz
   // you cannot use both the Scope and the virtual Nokia (both need UART0)
@@ -701,22 +653,18 @@ void Draw(void){ int i;
   EnableInterrupts(); // virtual Nokia uses UART0 interrupts
     
   // starting ==> display Splash screen and game info
-//  Splash_Screen();           // to uncomment
+  Splash_Screen();           
 
   //Nokia5110_ClearBuffer();
 	//Nokia5110_DisplayBuffer();      // draw buffer
 
   // set global parameter
-  current_game_level = 2 ; //MAXLEVELS-1;      // 0 to 4, to be set to 0
+  current_game_level = 0 ;       // 0 to 4, to be set to 0
   current_game_state = PLAYING_GAME;    // game starts  
   num_lives_left = MAXLIVES;           // 3 lives
   current_num_power_ups = 0;
   go_to_next_level = 0;                 // flag
-  score = 0;
-  
-  // Delay1ms(30);              // delay 0.03 sec at 80 MHz
-  // DisplayWinGame();        // to be removed
-  // DisplayGameOver();          // to be removed
+  score = 0; 
   
   // game loop
   while(current_game_state == PLAYING_GAME){
@@ -765,34 +713,17 @@ void Draw(void){ int i;
       }
       ShootLEDOnOff();
       Draw();           // draw the necessary objects
-
-      //if(pac.pacman_state==DYING)     // to be removed or changed
-        //break;
             
       //Delay1ms(30);
       
-      if(pac.pacman_state == DEAD){      // to be set to DEAD
+      if(pac.pacman_state == DEAD){      
         current_num_power_ups = 0;        // reset
         break;                            // break from level loop
       } else if(current_num_power_ups == game_level[current_game_level].num_power_up){
         current_num_power_ups = 0;        // reset
         go_to_next_level = 1;             // set flag
         break;
-      }
-      
-      /*// if game is cleared break, goes to next level, break from currnet level loop
-      if(current_num_power_ups == game_level[current_game_level].num_power_up){
-        current_num_power_ups = 0;
-        go_to_next_level = 1;
-        break;
-      }
-      // if number of lives is 0 break, from level loop
-      if(num_lives_left == 0){
-        current_num_power_ups = 0;
-        break;
-      }*/
-    
-   
+      }            
     }
        
     if(num_lives_left == 0){
@@ -801,6 +732,7 @@ void Draw(void){ int i;
       break;
     }
     if(go_to_next_level == 1){
+      score += 1000;
       go_to_next_level = 0;       // reset flag
       current_game_level++;
     }
@@ -809,11 +741,13 @@ void Draw(void){ int i;
       current_game_level = MAXLEVELS-1;
       current_game_state = WIN_GAME;
       break;
-    }
-    
+    }    
+  }
+  if(score < 0){
+    score = 0;
   }
   if(current_game_state == GAME_OVER){
-    // lose game scene
+    // lose game scene    
     DisplayGameOver();
   } else if (current_game_state == WIN_GAME){
     // win game scene
@@ -822,45 +756,6 @@ void Draw(void){ int i;
       
 }
   
-  /*
-  Nokia5110_PrintBMP(32, MISSILEVH , MissileV1, 0); // player ship middle bottom
-  Nokia5110_PrintBMP(20, 47, MissileV0, 0); // player ship middle bottom
-  Nokia5110_PrintBMP(10, 47, powerup, 0); // player ship middle bottom
-  Nokia5110_PrintBMP(33, 47 - PLAYERH, Bunker0, 0);
-  Nokia5110_PrintBMP(0, ENEMY10H - 1, SmallEnemy10PointA, 0);  
-  Nokia5110_PrintBMP(48, ENEMY10H - 1, SmallEnemy30PointA, 0);
-  Nokia5110_PrintBMP(64, ENEMY10H - 1, SmallEnemy30PointA, 0);  
-  Nokia5110_DisplayBuffer();   // draw buffer
-  */
-  
-
-/*  
-//  Init();
-  Timer2_Init(80000000/30);  // 30 Hz  
-  while(AnyLife){
-    while(Semaphore == 0){};
-    Semaphore = 0; // runs at 30 Hz
-    AnyLife = 0;
-//    for(i=0; i<4 ; i++){
-//      AnyLife |= Enemy[i].life;
-//    }
-//    Draw();
-  }
-  Nokia5110_Clear();
-  Nokia5110_SetCursor(1, 1);
-  Nokia5110_OutString("GAME OVER");
-  Nokia5110_SetCursor(1, 2);
-  Nokia5110_OutString("Nice try,");
-  Nokia5110_SetCursor(1, 3);
-  Nokia5110_OutString("Earthling!");
-  Nokia5110_SetCursor(2, 4);
-  Nokia5110_OutUDec(1234);
-  Nokia5110_SetCursor(0, 0); // renders screen
-  while(1){
-  }
-
-}
-*/
 
 // You can use this timer only if you learn how it works
 void Timer2_Init(unsigned long period){ 
@@ -912,9 +807,9 @@ void Delay1ms(unsigned long msec){
 }
 void Splash_Screen(void){
   Nokia5110_Clear();  
-//  Nokia5110_PrintBMP(0, 47, img_splash_screen, 0);  
+  Nokia5110_PrintBMP(0, 47, img_splash_screen, 0);
   Nokia5110_DisplayBuffer();
-  Delay1ms(1000);                 // 1 second
+  Delay1ms(1500);                 // 1 second
   // maximum number of line = 6
   // maxumum number of characters per line including space = 12
   // page 1
@@ -1105,7 +1000,7 @@ void MoveGhosts(void){
       enemyGhosts[i].center_x = enemyGhosts[i].xpos + GHOSTW/2;
       enemyGhosts[i].center_y = enemyGhosts[i].ypos - GHOSTH/2;
     }      
-  }
+  }  
 }
 
 void CollisionDectection(void){
@@ -1118,6 +1013,7 @@ void CollisionDectection(void){
       if(distance <= (PACMANW+GHOSTW)/2 - 2){
         pac.pacman_state = DYING;
         num_lives_left -= 1;
+        score -= 1000;
         //Sound_Killed();
         Sound_Explosion();
         return;                // pacman's dying
@@ -1129,9 +1025,9 @@ void CollisionDectection(void){
     if(powerups[i].powerup_state == ALIVE){
       distance = sqrt(pow((powerups[i].center_x - pac.center_x),2) + pow((powerups[i].center_y - pac.center_y),2));
       if(distance <= (PACMANW+POWERUP)/2 - 2){
+        score += 100;
         powerups[i].powerup_state = DEAD;     // remove the power up
         current_num_power_ups++;              // increase the number of power up captured
-        // current_num_power_ups=MAX_NUM_POWERUPS;     // win immediately, to be removed
         shurikens[i].state= ALIVE;    // set the corresponding missile alive, available for use
       }
     }
@@ -1143,6 +1039,7 @@ void CollisionDectection(void){
         if(enemyGhosts[j].ghost_state==ALIVE){
           distance = sqrt(pow((enemyGhosts[j].center_x - shurikens[i].center_x ),2) + pow((enemyGhosts[j].center_y - shurikens[i].center_y),2));
           if(distance <= ((double)SHURIKEN+GHOSTW)/2 - 2){
+            score += 1000;
             enemyGhosts[j].ghost_state = DYING;
             shurikens[i].state= DEAD;                            
             Sound_Explosion();
