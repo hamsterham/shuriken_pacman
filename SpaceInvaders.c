@@ -311,7 +311,7 @@ const unsigned char img_shurikenB[] ={
 
 
 
-const unsigned char img_splash_screen[] ={
+/*const unsigned char img_splash_screen[] ={
  0x42, 0x4D, 0xB6, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x76, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x54, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x40, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x80,
  0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x80, 0x00, 0x00, 0x80, 0x80, 0x80, 0x00, 0xC0, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF,
@@ -383,7 +383,7 @@ const unsigned char img_splash_screen[] ={
  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF
 };
-
+*/
 // *************************** Capture image dimensions out of BMP**********
 
 #define SCREENW               84      // screen dimensions
@@ -420,8 +420,8 @@ const unsigned char img_splash_screen[] ={
 #define SPD_STOP              0       
 #define SPD_LEFT_UP_SLOW      -1       // slow SPEED for different directions
 #define SPD_RIGHT_DOWN_SLOW   1       
-#define SPD_LEFT_UP_FAST      -4       // fast SPEED for different directions
-#define SPD_RIGHT_DOWN_FAST   4    
+#define SPD_LEFT_UP_FAST      -3       // fast SPEED for different directions
+#define SPD_RIGHT_DOWN_FAST   3    
 
 #define DEAD                  0       // states for various objects
 #define ALIVE                 2       
@@ -541,7 +541,8 @@ void init_pac(void){
   pac.orientation = ORIENTATIONH;      // degault to horizontal, facing right
   pac.direction = DIRECTIONR;  
   pac.xpos = 0;           // initial position
-  pac.ypos = SCREENH;
+  //pac.ypos = SCREENH;
+  pac.ypos = PACMANH;
   pac.center_x= pac.xpos + PACMANW/2;
   pac.center_y = pac.ypos - PACMANH/2;  
   pac.image[DIRECTIONL][0] = img_pacmanleftA;
@@ -575,8 +576,8 @@ void init_enemies(int num_ghost){
   for(i=0;i<num_ghost;i++){
     enemyGhosts[i].ghost_state = ALIVE;
     // ensure there's a distance from pacman and doesn't go off screen    
-    enemyGhosts[i].xpos = Random()%(83 - 2*GHOSTW) + GHOSTW;    
-    enemyGhosts[i].ypos = Random()%(47 - GHOSTH) + GHOSTH;
+    enemyGhosts[i].xpos = Random()%(83 - GHOSTW) + 2*GHOSTW;    
+    enemyGhosts[i].ypos = Random()%(47 - GHOSTH) + 2*GHOSTH;
     enemyGhosts[i].image[0] = img_enemyghostA;
     enemyGhosts[i].image[1] = img_enemyghostB;
     enemyGhosts[i].center_x =  enemyGhosts[i].xpos + GHOSTW/2;
@@ -637,6 +638,8 @@ void init_game_level_objects(){
   Nokia5110_SetCursor(5, 2);
   sprintf(str, "%d", current_game_level+1);
   Nokia5110_OutString(str);    
+  Delay1ms(800);
+  Nokia5110_Clear();  
 }
 
 
@@ -677,8 +680,8 @@ void init_game_level_objects(){
     SysTick_Init(80000000/11025);                  // 11 kHz    
     
     // level loop
-    while(1){
-      while(Semaphore==0){}
+    while(1){           
+      while(Semaphore==0){}   // loop until semaphore is set
       Semaphore = 0;          // reset flag
       // read in buttons
       Buttons_In();
@@ -705,17 +708,16 @@ void init_game_level_objects(){
       } else {
         pac.speed = DIRECTIONSTOP;
       }
-      
-      Move();           // move the necessary objects    
-      // do collision detection only when pacman's alive
-      if(pac.pacman_state == ALIVE){
-        CollisionDectection();      
-      }
-      ShootLEDOnOff();
-      Draw();           // draw the necessary objects
-            
-      //Delay1ms(30);
-      
+
+        Move();           // move the necessary objects    
+        // do collision detection only when pacman's alive
+        if(pac.pacman_state == ALIVE){
+          CollisionDectection();      
+        }
+          
+        ShootLEDOnOff();
+        Draw();           // draw the necessary objects
+
       if(pac.pacman_state == DEAD){      
         current_num_power_ups = 0;        // reset
         break;                            // break from level loop
@@ -807,9 +809,13 @@ void Delay1ms(unsigned long msec){
 }
 void Splash_Screen(void){
   Nokia5110_Clear();  
-  Nokia5110_PrintBMP(0, 47, img_splash_screen, 0);
-  Nokia5110_DisplayBuffer();
-  Delay1ms(1500);                 // 1 second
+  //Nokia5110_PrintBMP(0, 47, img_splash_screen, 0);
+  Nokia5110_SetCursor(0, 1);
+  Nokia5110_OutString("SHURIKEN");
+  Nokia5110_SetCursor(1, 2);
+  Nokia5110_OutString("PACMAN");
+  //Nokia5110_DisplayBuffer();
+  Delay1ms(1500);                 // 1.5 second
   // maximum number of line = 6
   // maxumum number of characters per line including space = 12
   // page 1
@@ -825,7 +831,7 @@ void Splash_Screen(void){
   while((GPIO_PORTE_DATA_R&0x03) == 0){   // wait for user to press any button and go to next page
   }
   // page 2
-  Delay1ms(40);         // delay 400ms for button bounce
+  Delay1ms(100);         // delay 400ms for button bounce
   Nokia5110_Clear();
   Nokia5110_SetCursor(0, 0);
   Nokia5110_OutString(" (contd):");
@@ -838,7 +844,7 @@ void Splash_Screen(void){
   Nokia5110_OutString("1 power-up = 1 shuriken");
   while((GPIO_PORTE_DATA_R&0x03) == 0){   // wait for user to press any button and go to game
   } 
-  Delay1ms(100);         // delay 40ms for button bounce and going to next screen
+  Delay1ms(50);         // delay 40ms for button bounce and going to next screen
   Nokia5110_Clear();  
 }
 
@@ -879,7 +885,7 @@ void PortE_Init(void){
 
 void Draw(void){ 
   int i;
-  Nokia5110_ClearBuffer();      
+//  Nokia5110_ClearBuffer();      
   // draw DYING pacman
   if(pac.pacman_state == DYING){  
     Nokia5110_PrintBMP(pac.xpos, pac.ypos, pac.image_dying[pac.dying_FrameCounter], 0);  
@@ -916,6 +922,7 @@ void Draw(void){
     Nokia5110_PrintBMP(pac.xpos, pac.ypos, pac.image[pac.direction][FrameCount], 0);  
   }
   Nokia5110_DisplayBuffer();      // draw buffer
+  
   FrameCount = (FrameCount+1)&0x01; // 0,1,0,1,...
 }
 
@@ -974,27 +981,29 @@ void MoveGhosts(void){
   int chase=0;
   for(i=0; i<game_level[current_game_level].num_ghost; i++){
     if(enemyGhosts[i].ghost_state == ALIVE){
-      chase = Random()%8 ;     // 0 to 7
+      chase = Random()%16 ;     // 0 to 15
       switch(chase){
         case 0:
-          enemyGhosts[i].xpos += SPD_LEFT_UP_NORM;
+          enemyGhosts[i].xpos += SPD_LEFT_UP_SLOW;
           if(enemyGhosts[i].xpos < 0)
             enemyGhosts[i].xpos = 0;          
           break;
         case 1:
-          enemyGhosts[i].xpos += SPD_RIGHT_DOWN_NORM;
+          enemyGhosts[i].xpos += SPD_RIGHT_DOWN_SLOW;
           if(enemyGhosts[i].xpos > SCREENW - GHOSTW)
             enemyGhosts[i].xpos = SCREENW - GHOSTW;
           break;
         case 2:
-          enemyGhosts[i].ypos += SPD_RIGHT_DOWN_NORM;
+          enemyGhosts[i].ypos += SPD_RIGHT_DOWN_SLOW;
           if(enemyGhosts[i].ypos > SCREENH)
             enemyGhosts[i].ypos = SCREENH;
           break;
         case 3:
-          enemyGhosts[i].ypos += SPD_LEFT_UP_NORM;
+          enemyGhosts[i].ypos += SPD_LEFT_UP_SLOW;
           if(enemyGhosts[i].ypos < GHOSTH)
             enemyGhosts[i].ypos = GHOSTH;
+          break;
+        default:
           break;
       }      
       enemyGhosts[i].center_x = enemyGhosts[i].xpos + GHOSTW/2;
@@ -1053,11 +1062,11 @@ void CollisionDectection(void){
 void Buttons_In(void){
   int i;
   if(ROTATE){    
-    Delay1ms(40);
     pac.orientation = !pac.orientation;   // rotate pacman
+    Delay1ms(30);    
   }
   if(SHOOT){
-    Delay1ms(40);
+    Delay1ms(30);
     // set a shuriken to FLYING if there's one available
     for(i=0;i<game_level[current_game_level].num_power_up;i++){
       if(shurikens[i].state == ALIVE){  
@@ -1082,7 +1091,6 @@ void DisplayWinGame(void){
   Nokia5110_SetCursor(7, 4);
   sprintf(str, "%d", score);
   Nokia5110_OutString(str);
-//  Delay1ms(1000);
 }
 
 void DisplayGameOver(void){
@@ -1097,7 +1105,6 @@ void DisplayGameOver(void){
   Nokia5110_OutString(str);
   Nokia5110_SetCursor(0, 5);
   Nokia5110_OutString("Good Game :\)");
-  Delay1ms(1000);
 }
 
 void MoveShruikens(void){
