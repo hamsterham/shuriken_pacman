@@ -318,8 +318,8 @@ const unsigned char img_shurikenB[] ={
 */
 // *************************** Capture image dimensions out of BMP**********
 
-#define SCREENW               84      // screen dimensions
-#define SCREENH               48
+#define SCREENW               83      // screen dimensions
+#define SCREENH               47
 #define SHURIKEN              10      // shuriken square dimension
 #define PACMANW               10      // PACMAN dimensions
 #define PACMANH               10
@@ -570,7 +570,7 @@ void init_game_level_objects(){
   init_enemies(game_level[current_game_level].num_ghost);
   init_power_ups(game_level[current_game_level].num_power_up);
   init_shurikens(game_level[current_game_level].num_power_up);
-  current_num_power_ups = 0;       
+  current_num_power_ups = 0;     // to be set to zero
   go_to_next_level = 0;         // reset flag  
   num_allowed_shots = 0;
   GPIO_PORTB_DATA_R = 0;
@@ -580,7 +580,8 @@ void init_game_level_objects(){
   Nokia5110_SetCursor(5, 2);
   sprintf(str, "%d", current_game_level+1);
   Nokia5110_OutString(str);    
-  Delay1ms(800);
+  // Delay1ms(800);   // real board
+  Delay1ms(200);      // simulation
   Nokia5110_ClearBuffer();  
 }
 
@@ -605,7 +606,7 @@ int main(void){
 	//Nokia5110_DisplayBuffer();      // draw buffer
 
   // set global parameter
-  current_game_level = 0 ;       // 0 to 4, to be set to 0
+  current_game_level = 4 ;       // 0 to 4, to be set to 0
   current_game_state = PLAYING_GAME;    // game starts  
   num_lives_left = MAXLIVES;           // 3 lives    
   score = 0; 
@@ -617,7 +618,7 @@ int main(void){
     // e.g. ghosts , power-up , pacman etc
     // using game_level objects
     init_game_level_objects();  
-    //Timer2_Init(80000000/16);     // 16 Hz REAL BOARD
+    //Timer2_Init(80000000/12);     // 12 Hz REAL BOARD
     Timer2_Init(80000000/60);     // 60 Hz SIMULATION
     SysTick_Init(80000000/11025);                  // 11 kHz    
     
@@ -651,20 +652,21 @@ int main(void){
         pac.speed = DIRECTIONSTOP;
       }
       
-      // REAL BOARD REGION 
-      if(pac.pacman_state == ALIVE){
-          CollisionDectection();      
-        }                      
-        Move();           // move the necessary objects    
         // do collision detection only when pacman's alive
-
-        ShootLEDOnOff();        
-        Draw();           // draw the necessary objects                
+        if(pac.pacman_state == ALIVE){
+          CollisionDectection();      
+        }                     
       
+        
+          Move();           // move the necessary objects    
+          ShootLEDOnOff();        
+          Draw();           // draw the necessary objects                
+        
+        
       if(pac.pacman_state == DEAD){      
         current_num_power_ups = 0;        // reset
         break;                            // break from level loop
-      } else if(current_num_power_ups == game_level[current_game_level].num_power_up){
+      } else if(current_num_power_ups >= game_level[current_game_level].num_power_up){
         current_num_power_ups = 0;        // reset
         go_to_next_level = 1;             // set flag
         break;
@@ -726,7 +728,7 @@ void Timer2_Init(unsigned long period){
 void Timer2A_Handler(void){ 
   TIMER2_ICR_R = 0x00000001;   // acknowledge timer2A timeout
   //TimerCount++;  
-  TimerCount = (TimerCount+1)&0x02; // 0,1,2,0,1,2...
+  TimerCount = (TimerCount+1)&0x03; // 0,1,2,0,1,2...
   Semaphore = 1; // trigger Draw() and other functions in the main while
 }
 
@@ -760,7 +762,8 @@ void Splash_Screen(void){
   Nokia5110_SetCursor(3, 2);
   Nokia5110_OutString("PACMAN");
   //Nokia5110_DisplayBuffer();
-  Delay1ms(1500);                 // 1.5 second
+  //Delay1ms(1500);          // real board
+  Delay1ms(700);            // simulation
   // maximum number of line = 6
   // maxumum number of characters per line including space = 12
   // page 1
@@ -830,7 +833,7 @@ void PortE_Init(void){
 
 void Draw(void){ 
   int i;
-  //Nokia5110_ClearBuffer();      
+  Nokia5110_ClearBuffer();      
   // draw DYING pacman
   if(pac.pacman_state == DYING){  
     Nokia5110_PrintBMP(pac.xpos, pac.ypos, pac.image_dying[pac.dying_FrameCounter], 0);  
@@ -1009,7 +1012,7 @@ void Buttons_In(void){
   int i=0;
   if(ROTATE){        
     pac.orientation = !pac.orientation;   // rotate pacman    
-    Delay1ms(40);
+    Delay1ms(50);
   }
   if(SHOOT){
     // set a shuriken to FLYING if there's one available
